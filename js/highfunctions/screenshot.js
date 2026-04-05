@@ -823,11 +823,28 @@ async function generateScreenshot(msgs) {
             else if (bubbleStyle === 'square') bubbleStyleCSS = 'border-radius: 8px;';
 
             // 头像 HTML
-            const avatarSize = 35;
+            /*const avatarSize = 35;
             const avatarUrl = isUser ? myAvatarUrl : partnerAvatarUrl;
             const avatarHTML = showAvatar && avatarUrl ? 
                 `<img src="${avatarUrl}" style="width:${avatarSize}px; height:${avatarSize}px; border-radius:${avatarRadius}; object-fit:cover; flex-shrink:0; border: 2px solid rgba(255,255,255,0.3);">` : 
                 (showAvatar ? `<div style="width:${avatarSize}px; height:${avatarSize}px; border-radius:${avatarRadius}; background:${isUser ? accentColor : '#e0e0e0'}; display:flex; align-items:center; justify-content:center; color:${isUser ? '#fff' : '#999'}; font-size:14px; flex-shrink:0; border: 2px solid rgba(255,255,255,0.3);">${isUser ? '我' : 'T'}</div>` : '');
+*/
+            // 头像 HTML（✨ 修复跨域卡死：过滤外部图床链接）
+            const avatarSize = 35;
+            const avatarUrl = isUser ? myAvatarUrl : partnerAvatarUrl;
+            // 判断是不是安全的本地数据（base64）或者同源链接
+            const isSafeImg = avatarUrl && (avatarUrl.startsWith('data:') || avatarUrl.startsWith(window.location.origin));
+
+            let avatarHTML = '';
+            if (showAvatar) {
+                if (isSafeImg) {
+                    // 安全图片：正常渲染 <img>
+                    avatarHTML = `<img src="${avatarUrl}" style="width:${avatarSize}px; height:${avatarSize}px; border-radius:${avatarRadius}; object-fit:cover; flex-shrink:0; border: 2px solid rgba(255,255,255,0.3);">`;
+                } else {
+                    // 外部跨域图片（如图床）：用纯色文字代替，彻底避免 html2canvas 卡死
+                    avatarHTML = `<div style="width:${avatarSize}px; height:${avatarSize}px; border-radius:${avatarRadius}; background:${isUser ? accentColor : '#e0e0e0'}; display:flex; align-items:center; justify-content:center; color:${isUser ? '#fff' : '#999'}; font-size:14px; flex-shrink:0; border: 2px solid rgba(255,255,255,0.3);">${isUser ? '我' : 'T'}</div>`;
+                }
+            }
 
             // 拼接消息块
             if (showAvatar) {
@@ -907,10 +924,17 @@ async function generateScreenshot(msgs) {
         const canvas = await html2canvas(tempContainer, {
             backgroundColor: null,
             scale: 4,
-            useCORS: true,
+            useCORS: false,
             logging: false,
             windowWidth: phoneWidth,
             allowTaint: true,
+            ignoreElements: (element) => {
+            // ✨ 如果漏网了外部图片标签，直接让 html2canvas 无视它
+                if (element.tagName === 'IMG' && element.src && !element.src.startsWith('data:') && !element.src.startsWith(window.location.origin)) {
+                    return true;
+                }
+                return false;
+            },
             onclone: (clonedDoc) => {
                 const clonedContainer = clonedDoc.body.querySelector('div[style*="width: 375px"]');
                 const style = clonedDoc.createElement('style');
