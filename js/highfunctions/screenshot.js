@@ -756,10 +756,10 @@ async function generateScreenshot(msgs) {
         `);
 
             // 气泡样式
-            /*let bubbleStyleCSS = '';
+           let bubbleStyleCSS = '';
             if (bubbleStyle === 'rounded') bubbleStyleCSS = 'border-radius: 20px;';
             else if (bubbleStyle === 'rounded-large') bubbleStyleCSS = 'border-radius: 24px;';
-            else if (bubbleStyle === 'square') bubbleStyleCSS = 'border-radius: 8px;';*/
+            else if (bubbleStyle === 'square') bubbleStyleCSS = 'border-radius: 8px;';
             // ✨ 智能提取：直接读取网页上真实气泡的最终计算样式，100% 还原自定义效果
             let sentBubbleComputedCSS = '';
             let recvBubbleComputedCSS = '';
