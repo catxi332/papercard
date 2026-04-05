@@ -576,21 +576,19 @@
             }
         }
 
-        // ========== 修改 4：确保 sessionList 和 lastSessionId 正确 ==========
+    // ========== 修改 4：确保 sessionList 和 lastSessionId 正确 ==========
         if (typeof APP_PREFIX !== 'undefined' && typeof SESSION_ID !== 'undefined') {
             try {
-                // 确保 sessionList 中有这个 session
                 var sessionList = await localforage.getItem(APP_PREFIX + 'sessionList') || [];
                 if (!sessionList.some(s => s.id === SESSION_ID)) {
-                    sessionList.push({
-                        id: SESSION_ID,
-                        name: '导入的会话 ' + new Date().toLocaleDateString(),
-                        createdAt: Date.now()
-                    });
+                    sessionList.push({ id: SESSION_ID, name: '导入的会话 ' + new Date().toLocaleDateString(), createdAt: Date.now() });
                     await localforage.setItem(APP_PREFIX + 'sessionList', sessionList);
                 }
-                // 更新 lastSessionId
                 await localforage.setItem(APP_PREFIX + 'lastSessionId', SESSION_ID);
+                
+                // ========== 新增：立即刷新，不给中间状态留机会 ==========
+                window.location.href = window.location.pathname;
+                return; // 阻止后续代码执行
             } catch (e3) {
                 console.warn('[backup] sessionList 更新失败:', e3);
             }

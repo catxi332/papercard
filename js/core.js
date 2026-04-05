@@ -1950,7 +1950,7 @@ async function importAnyBackup(file) {
                 }
                 await ChatBackup.applyBackupToStorage(data);
                 showNotification('恢复成功，页面即将刷新', 'success');
-                setTimeout(() => window.location.reload(), 1500);
+                //setTimeout(() => window.location.reload(), 1500);
                 return;
             }
 
