@@ -203,7 +203,7 @@
     async function buildBackupPayload(flags) {
         flags = flags || {
             inclMsgs: true, inclSet: true, inclCustom: true, inclAnn: true,
-            inclThemes: true, inclDg: true, inclStickers: false
+            inclThemes: true, inclDg: true, inclStickers: true
         };
         var lfData = {};
         var keys = await localforage.keys();

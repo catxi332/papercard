@@ -134,7 +134,7 @@ function generateWishReplyText() {
     const pool = (typeof customReplies !== 'undefined' && customReplies.length > 0) ? customReplies : [];
     if (pool.length === 0) return '（回复库为空，请先添加字卡）';
 
-    const count = Math.floor(Math.random() * 5) + 2; // 1~3句
+    const count = Math.floor(Math.random() * 5) + 2; // 2-6句
     const used = [];
     let result = '';
 
@@ -259,66 +259,6 @@ function initWishEditModal() {
     document.getElementById('wish-edit-save').onclick = saveWishItem;
 }
 
-/*function openEditWish(id) {
-    editingWishId = id || null;
-    tempWishImage = null;
-
-    const modal = document.getElementById('wish-edit-modal');
-    const title = document.getElementById('wish-edit-title');
-    const priceInput = document.getElementById('wish-price-input');
-    const myNoteInput = document.getElementById('wish-my-note-input');
-    const partnerNoteInput = document.getElementById('wish-partner-note-input');
-    const imgPreview = document.getElementById('wish-img-preview');
-    const placeholder = document.getElementById('wish-img-placeholder');
-
-    if (id) {
-        const item = wishingPoolData.find(w => w.id === id);
-        if (!item) return;
-
-        title.textContent = '编辑愿望';
-        priceInput.value = item.price || '';
-        myNoteInput.value = item.myNote || '';
-        
-        // 回填对方备注
-        if (partnerNoteInput) {
-            partnerNoteInput.value = item.partnerNote || '';
-            // 如果还没回应，给个提示
-            if (item.status === 'pending') {
-                partnerNoteInput.placeholder = '等待Ta回应中';
-                partnerNoteInput.style.opacity = '0.6';
-                partnerNoteInput.disabled = true;
-            } else {
-                partnerNoteInput.placeholder = 'Ta 的回应';
-                partnerNoteInput.style.opacity = '1';
-                partnerNoteInput.disabled = false;
-            }
-        }
-
-        if (item.image) {
-            imgPreview.src = item.image;
-            imgPreview.style.display = 'block';
-            placeholder.style.display = 'none';
-            tempWishImage = item.image;
-        } else {
-            imgPreview.style.display = 'none';
-            placeholder.style.display = 'block';
-        }
-    } else {
-        title.textContent = '许个愿';
-        priceInput.value = '';
-        myNoteInput.value = '';
-        if (partnerNoteInput) {
-            partnerNoteInput.value = '';
-            partnerNoteInput.placeholder = 'Ta 的回应 (等Ta回应后自动填入)';
-            partnerNoteInput.style.opacity = '1';
-            partnerNoteInput.disabled = false;
-        }
-        imgPreview.style.display = 'none';
-        placeholder.style.display = 'block';
-    }
-
-    showModal(modal, document.getElementById('wish-price-input'));
-}*/
 
 function openEditWish(id) {
     editingWishId = id || null;
