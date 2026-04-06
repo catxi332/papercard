@@ -1551,7 +1551,7 @@ function manageAutoSendTimer() {
             }
 
            // const replyCount = Math.random() < 0.75 ? 1: (Math.random() < 0.95 ? 2: 3);
-           const replyCount = Math.floor(Math.random() * 4) + 1;
+           const replyCount = Math.floor(Math.random() * 3) + 1;
             if (!customReplies || customReplies.length === 0) {
                 (function(){var _tiW=document.getElementById('typing-indicator-wrapper');if(_tiW){var _tiInner=_tiW.querySelector('.typing-indicator');if(_tiInner){_tiInner.classList.add('hiding');setTimeout(function(){_tiW.style.display='none';if(_tiInner)_tiInner.classList.remove('hiding');},240);}else{_tiW.style.display='none';}}})();
                 showNotification('还没有添加字卡，请先到"自定义回复"中添加字卡', 'info', 4000);
