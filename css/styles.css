@@ -10429,10 +10429,28 @@ html[data-theme="dark"] .period-stat-value { color: var(--accent-color-dark); }
     }
 }
 .wp-card-wrapper { break-inside: avoid; margin-bottom: 16px; position: relative; perspective: 1000px; cursor: pointer; }
-.wp-card-inner { position: relative; width: 100%; transition: transform 0.6s; transform-style: preserve-3d; aspect-ratio: 3/4;}
+.wp-card-inner { position: relative; width: 100%; transition: transform 0.6s; transform-style: preserve-3d; aspect-ratio: 1/1;}
 .wp-card-wrapper.flipped .wp-card-inner { transform: rotateY(180deg); }
 .wp-card-front, .wp-card-back { backface-visibility: hidden; border-radius: 12px; overflow: hidden; }
-.wp-card-front { background: #fff; border: 1px solid rgba(0,0,0,0.05); box-shadow: 0 2px 8px rgba(0,0,0,0.06);  display: flex; align-items: center; justify-content: center; position: relative; transition: transform 0.2s, box-shadow 0.2s;position: absolute;}
+/*.wp-card-front { background: #fff; border: 1px solid rgba(0,0,0,0.05); box-shadow: 0 2px 8px rgba(0,0,0,0.06);  display: flex; align-items: center; justify-content: center; position: relative; transition: transform 0.2s, box-shadow 0.2s;position: absolute;}*/
+.wp-card-front {
+  background: #fff;
+  border: 1px solid rgba(0,0,0,0.05);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  position: absolute; /* ✅ 新增：绝对定位铺满整个背面容器 */
+  inset: 0; 
+  /* ✅ 新增：强制 4:3 比例 */
+  aspect-ratio: 1 / 1; 
+  overflow: hidden; /* ✅ 新增：超出的部分直接切掉，保证没有长图 */
+}
+/* ✅ 新增：有图时，不管什么比例，强制铺满 4:3 盒子，居中裁剪 */
+.wp-card-front img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* 核心：填满盒子，多余部分自动隐藏 */
+  display: block;
+}
+
 .wp-card-wrapper:hover .wp-card-front { transform: translateY(-3px); box-shadow: 0 6px 16px rgba(0,0,0,0.1); }
 .wp-card-front img { width: 100%; height: 100%; object-fit: cover; }
 .wp-card-star { position: absolute; top: 8px; right: 8px; font-size: 14px; color: #FFD700; background: rgba(255,255,255,0.9); width: 24px; height: 24px; border-radius: 50%; display: none; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.15); animation: wpStarBreath 2s infinite; z-index: 2; }
@@ -10451,6 +10469,60 @@ html[data-theme="dark"] .period-stat-value { color: var(--accent-color-dark); }
 .wp-edit-img-area { width: 100%; aspect-ratio: 1/1; max-width: 180px; margin: 0 auto 16px; border: 2px dashed var(--border-color); border-radius: 16px; display: flex; align-items: center; justify-content: center; cursor: pointer; overflow: hidden; background: var(--primary-bg); transition: border-color 0.2s; }
 .wp-edit-img-area:hover { border-color: var(--accent-color); }
 .wp-edit-img-area img { width: 100%; height: 100%; object-fit: cover; }
+/* 无图时的默认高级卡面 */
+.wp-card-default-bg {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  background: 
+    radial-gradient(ellipse at 20% 20%, rgba(var(--accent-color-rgb), 0.12) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 80%, rgba(var(--accent-color-rgb), 0.06) 0%, transparent 50%),
+    var(--secondary-bg);
+}
+/* 表面若隐若现的网格线 */
+.wp-card-default-bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(rgba(var(--accent-color-rgb),0.03) 1px, transparent 1px), 
+    linear-gradient(90deg, rgba(var(--accent-color-rgb),0.03) 1px, transparent 1px);
+  background-size: 20px 20px;
+  pointer-events: none;
+}
+/* 文字上下两条极细装饰线（复刻 header-motto） */
+.wp-card-default-bg::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 60px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(var(--accent-color-rgb),0.4), transparent);
+  transform: translate(-50%, -50%) translateY(18px);
+  pointer-events: none;
+}
+.wp-card-default-name {
+  position: relative;
+  z-index: 1;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  letter-spacing: 2px;
+  text-align: center;
+  padding: 0 20px;
+  max-height: 60%;
+  overflow: hidden;
+  word-break: break-all;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
 
 /* =========================================
    留言板样式 (基于信封样式扩展)

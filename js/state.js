@@ -331,7 +331,8 @@ window._setRegVal = (id, val) => {
         let messages = [];
         let settings = {   
             homeShortcutsCustomEnabled: false,
-            homeShortcutsSelected: ['advanced']
+            homeShortcutsSelected: ['advanced'],
+            keepKeyboardAlive: false // 🌟【新增】默认关闭键盘保活（防止部分用户不习惯）
         };
         let partnerPersonas = []; 
         let showPartnerNameInChat = false; 

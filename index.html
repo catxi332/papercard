@@ -965,13 +965,18 @@
                             <input type="range" id="read-no-reply-chance-slider" min="0" max="100" value="20" class="range-slider" style="width:100%;">
                         </div>
                         <div class="setting-pill-row" id="typing-indicator-toggle">
-                            <span class="setting-pill-icon"><i class="fas fa-keyboard"></i></span>
-                            <span class="setting-pill-label">正在输入</span>
+                            <span class="setting-pill-icon"><i class="fa-solid fa-spinner"></i></span>
+                            <span class="setting-pill-label">正在输入中</span>
                             <div class="setting-pill-switch"><div class="setting-pill-knob"></div></div>
                         </div>
                         <div class="setting-pill-row" id="enter-send-toggle">
                             <span class="setting-pill-icon"><i class="fas fa-paper-plane"></i></span>
                             <span class="setting-pill-label">回车发送消息</span>
+                            <div class="setting-pill-switch"><div class="setting-pill-knob"></div></div>
+                        </div>
+                        <div class="setting-pill-row" id="keep-keyboard-alive-toggle">
+                            <span class="setting-pill-icon"><i class="fas fa-keyboard"></i></span>
+                            <span class="setting-pill-label">发送后保留键盘</span>
                             <div class="setting-pill-switch"><div class="setting-pill-knob"></div></div>
                         </div>
                     </div>
@@ -1029,7 +1034,7 @@
                         </div>
                         <div class="setting-pill-row" id="board-partner-write-toggle">
                             <span class="setting-pill-icon"><i class="fas fa-pencil-alt"></i></span>
-                            <span class="setting-pill-label">主动写入留言板<span style="font-size:11px;color:var(--text-secondary);font-weight:400;"> 开启后对方会主动写留言板</span></span>
+                            <span class="setting-pill-label">主动写入留言板<span style="font-size:11px;color:var(--text-secondary);font-weight:400;"> 开启后对方会有概率主动写留言</span></span>
 
                             <div class="setting-pill-switch"><div class="setting-pill-knob"></div></div>
                         </div>

@@ -189,7 +189,7 @@ function checkStatus() {
 
 }
 
-function generatePartnerReply() {
+/*function generatePartnerReply() {
   const pool = boardData.boardReplyPool;
   const stickers = (typeof stickerLibrary !== 'undefined' && stickerLibrary.length > 0) ? [...stickerLibrary] : [];
   const emojis = (typeof customEmojis !== 'undefined' && customEmojis.length > 0) ? [...customEmojis] : [];
@@ -223,8 +223,47 @@ function generatePartnerReply() {
   }
 
   return resultArray.length > 0 ? resultArray : null;
-}
+}*/
+function generatePartnerReply() {
+    const pool = boardData.boardReplyPool;
+    const stickers = (typeof stickerLibrary !== 'undefined' && stickerLibrary.length > 0) ? [...stickerLibrary] : [];
+    const emojis = (typeof customEmojis !== 'undefined' && customEmojis.length > 0) ? [...customEmojis] : [];
+    if (pool.length === 0 && stickers.length === 0) return null;
 
+    const punctuations = ['。', '！', '…', '～', '，', '、'];
+
+    // 1. 拼文本
+    const count = 8 + Math.floor(Math.random() * 5);
+    const uniquePool = getUniqueShuffled(pool, count);
+    let text = uniquePool.map(s => s + punctuations[Math.floor(Math.random() * punctuations.length)]).join('');
+
+    // 2. 15%概率混入emoji
+    if (emojis.length > 0 && Math.random() < 0.15) {
+        const emoji = emojis[Math.floor(Math.random() * emojis.length)];
+        const randomPos = Math.floor(Math.random() * text.length);
+        text = text.slice(0, randomPos) + emoji + text.slice(randomPos);
+    }
+
+    // 3. 0.35概率抽取表情包（不生成独立对象了，存成数组放在同一条消息里）
+    let pickedStickers = [];
+    if (stickers.length > 0 && Math.random() < 0.35) {
+        const stickerCount = Math.random() < 0.5 ? 1 : 2;
+        pickedStickers = getUniqueShuffled(stickers, stickerCount);
+    }
+
+    // 4. 统一合并成【唯一的】一条回复消息
+    const replyObj = { 
+        id: genId(), 
+        sender: 'partner', 
+        text: text, 
+        image: null, 
+        sticker: null, // 保留此字段以防影响老数据，但新逻辑不再读取它
+        stickers: pickedStickers, // ✅ 新增：用数组存放多个表情包
+        timestamp: Date.now() 
+    };
+
+    return [replyObj]; // ✅ 返回只包含1个对象的数组
+}
 
 
 // ==========================================
@@ -385,10 +424,26 @@ function openDetail(threadId, type) {
       const isStarter = (idx === 0); // 第一条永远是主留言
       
       let cHtml = '';
-      if (r.image) cHtml += `<img src="${r.image}" style="max-width:150px;border-radius:8px;display:block;margin-bottom:8px;margin-left:40px;cursor:pointer;" onclick="viewImage('${r.image}')">`;
-      if (r.sticker) cHtml += `<img src="${r.sticker}" style="max-width:120px;border-radius:8px;display:block;margin-top:8px;margin-left:40px;">`;
-      if (r.text) cHtml += `<div class="${isSenderMe ? 'board-user-text' : 'board-reply-text'}" id="bv2-text-${r.id}">${escapeHtml(r.text)}</div>`;
-      
+      //if (r.image) cHtml += `<img src="${r.image}" style="max-width:150px;border-radius:8px;display:block;margin-bottom:8px;margin-left:40px;cursor:pointer;" onclick="viewImage('${r.image}')">`;
+      //if (r.sticker) cHtml += `<img src="${r.sticker}" style="max-width:120px;border-radius:8px;display:block;margin-top:8px;margin-left:40px;">`;
+      //if (r.text) cHtml += `<div class="${isSenderMe ? 'board-user-text' : 'board-reply-text'}" id="bv2-text-${r.id}">${escapeHtml(r.text)}</div>`;
+              // 1. 先渲染文字
+        if (r.text) cHtml += `<div class="${isSenderMe ? 'board-user-text' : 'board-reply-text'}" id="bv2-text-${r.id}">${escapeHtml(r.text)}</div>`;
+        
+        // 2. 再渲染表情包（保证在文字后面）
+        // 兼容老的单个sticker格式
+        if (r.sticker) cHtml += `<img src="${r.sticker}" style="max-width:120px;border-radius:8px;display:block;margin-top:8px;margin-left:40px;">`;
+        
+        // 渲染新的多个 stickers 数组（用一个 flex 容器实现横向排列）
+        if (r.stickers && r.stickers.length > 0) {
+            cHtml += `<div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; margin-left:40px;">`;
+            r.stickers.forEach(st => {
+                cHtml += `<img src="${st}" style="max-width:120px; max-height:120px; border-radius:8px;">`;
+            });
+            cHtml += `</div>`;
+        }
+
+
       // 样式和文案修复：第一条永远是有颜色的"留言"，后面的永远是"回复"
       const sectionClass = isStarter ? 'board-user-section' : 'board-reply-section';
       const labelClass = isStarter ? 'board-user-label' : 'board-reply-label';

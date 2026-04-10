@@ -55,7 +55,8 @@ function renderWishPoolGrid() {
             <div class="wp-card-star">✨</div>
             <div class="wp-card-inner" onclick="flipWishCardById('${item.id}')">
                 <div class="wp-card-front">
-                    ${item.image ? `<img src="${item.image}" alt="${escapeHtml(item.name)}" loading="lazy">` : `<div style="font-size: 16px; color: var(--text-secondary); padding: 20px; text-align: center;">${escapeHtml(item.name)}</div>`}
+                    ${item.image ? `<img src="${item.image}" alt="${escapeHtml(item.name)}" loading="lazy">` 
+                    : `<div class="wp-card-default-bg"><div class="wp-card-default-name">${escapeHtml(item.name)}</div></div>`}
                 </div>
                 <div class="wp-card-back">
                     <div class="wp-item-name">${escapeHtml(item.name)}</div>

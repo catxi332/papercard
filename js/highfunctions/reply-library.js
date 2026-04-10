@@ -1228,7 +1228,7 @@ function _showGroupEditor(group) {
     panel.querySelector('#ge-cancel').onclick = () => overlay.remove();
     overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
 
-    panel.querySelector('#ge-save').onclick = () => {
+    /*panel.querySelector('#ge-save').onclick = () => {
         const name = panel.querySelector('#ge-name').value.trim();
         if (!name) { showNotification('请输入分组名称', 'warning'); return; }
         if (isNew) {
@@ -1249,7 +1249,54 @@ function _showGroupEditor(group) {
                 window._pendingQuickGroupItems = null; 
             }
         };
-    }
+    }*/
+    panel.querySelector('#ge-save').onclick = () => {
+        const name = panel.querySelector('#ge-name').value.trim();
+        if (!name) {
+            showNotification('请输入分组名称', 'warning');
+            return;
+        }
+        
+        if (isNew) {
+            if (!window.customReplyGroups) window.customReplyGroups = [];
+            let initItems = [];
+            // 检查是不是从“快速分组”跳过来的
+            if (window._pendingQuickGroupItems && window._pendingQuickGroupItems.length > 0) {
+                initItems = window._pendingQuickGroupItems;
+                // 既然建分组成功了，顺便把字卡加进主池子
+                const pendingTarget = window._pendingQuickGroupTarget;
+                if (pendingTarget) {
+                    initItems.forEach(item => {
+                        if (!pendingTarget.includes(item)) pendingTarget.push(item);
+                    });
+                    window._pendingQuickGroupTarget = null;
+                }
+                window._pendingQuickGroupItems = null;
+            }
+            
+            // ✅ 补全：创建新分组对象
+            const newGroup = {
+                id: Date.now(),
+                name: name,
+                color: selectedColor,
+                disabled: false,
+                items: initItems
+            };
+            window.customReplyGroups.push(newGroup);
+            
+        } else {
+            // ✅ 补全：编辑已有分组的逻辑
+            group.name = name;
+            group.color = selectedColor;
+        }
+        
+        // ✅ 补全：保存数据、关闭弹窗、刷新列表并提示
+        throttledSaveData();
+        overlay.remove();
+        renderReplyLibrary();
+        showNotification(`✓ 分组「${name}」已${isNew ? '创建' : '保存'}`, 'success');
+    };
+
 }
 
 function _showSingleItemGroupPicker(itemText) {

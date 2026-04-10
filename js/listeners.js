@@ -176,6 +176,9 @@ function initChatActionListeners() {
         const imageFile = DOMElements.imageInput.files[0];
         if (text || imageFile) {
             sendMessage();
+            if (window._keepKeyboardAlive) {
+                setTimeout(() => DOMElements.messageInput.focus(), 100);
+            }
         }
     });
 // ========== 继续回复弹出按钮组逻辑 ==========
@@ -1191,6 +1194,7 @@ document.getElementById('chat-settings').addEventListener('click', () => {
                 '#read-no-reply-toggle': { prop: 'allowReadNoReply', name: '已读不回' },
                 '#emoji-mix-toggle': { prop: 'emojiMixEnabled', name: '表情混入消息' },
                 '#enter-send-toggle': { prop: 'enterToSendEnabled', name: '回车发送消息' },
+                '#keep-keyboard-alive-toggle': { prop: 'keepKeyboardAlive', name: '发送后键盘不收起' } // 🌟【新增】
             };
 
             for (const [selector, {
@@ -1596,7 +1600,57 @@ document.getElementById('chat-settings').addEventListener('click', () => {
 
         const getRandomItem = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
-        function initCoreListeners() {
+        /*function initCoreListeners() {
+            // 1. 聊天容器滚动监听
+            if (DOMElements.chatContainer) {
+                DOMElements.chatContainer.addEventListener('scroll', () => {
+                    const container = DOMElements.chatContainer;
+                    if (container.scrollTop < 50 && !isLoadingHistory && messages.length > displayedMessageCount) {
+                        isLoadingHistory = true;
+                        const loader = document.getElementById('history-loader');
+                        if (loader) loader.classList.add('visible');
+                        setTimeout(() => {
+                            displayedMessageCount += HISTORY_BATCH_SIZE;
+                            renderMessages(true);
+                            if (loader) loader.classList.remove('visible');
+                            isLoadingHistory = false;
+                        }, 600);
+                    }
+                });
+            }
+            // 🌟【新增 1】监听设置里开关的变化
+            document.addEventListener('settingsChanged', () => {
+                window._keepKeyboardAlive = !!settings.keepKeyboardAlive;
+            });
+            // 页面加载时读取一次默认值
+            window._keepKeyboardAlive = !!settings.keepKeyboardAlive;
+
+            DOMElements.messageInput.addEventListener('input', () => {
+                DOMElements.messageInput.style.height = 'auto';
+                DOMElements.messageInput.style.height = `${Math.min(DOMElements.messageInput.scrollHeight, 120)}px`;
+            });
+        
+
+            DOMElements.messageInput.addEventListener('input', () => {
+                DOMElements.messageInput.style.height = 'auto'; DOMElements.messageInput.style.height = `${Math.min(DOMElements.messageInput.scrollHeight, 120)}px`;
+            });
+            // 回车发送消息功能（Shift+Enter依然是换行）
+            DOMElements.messageInput.addEventListener('keydown', (e) => {
+                if (settings.enterToSendEnabled && e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault(); // 阻止默认的换行
+                    // 🌟【新增 2】如果开启了保活，发完立刻把焦点抢回来
+                    if (window._keepKeyboardAlive) {
+                        setTimeout(() => DOMElements.messageInput.focus(), 50);
+                    }
+                    const text = DOMElements.messageInput.value.trim();
+                    const imageFile = DOMElements.imageInput.files[0];
+                    if (text || imageFile) {
+                        sendMessage();
+                    }
+                }
+            });
+        }*/
+       function initCoreListeners() {
             // 1. 聊天容器滚动监听
             if (DOMElements.chatContainer) {
                 DOMElements.chatContainer.addEventListener('scroll', () => {
@@ -1615,26 +1669,37 @@ document.getElementById('chat-settings').addEventListener('click', () => {
                 });
             }
 
-            // 6. 其他按钮监听
-            /*if (DOMElements.continueBtn) {
-                DOMElements.continueBtn.addEventListener('click', simulateReply);
-            }*/
-        }
+            // 🌟【新增 1】监听设置里开关的变化
+            document.addEventListener('settingsChanged', () => {
+                window._keepKeyboardAlive = !!settings.keepKeyboardAlive;
+            });
+            // 页面加载时读取一次默认值
+            window._keepKeyboardAlive = !!settings.keepKeyboardAlive;
 
-        DOMElements.messageInput.addEventListener('input', () => {
-            DOMElements.messageInput.style.height = 'auto'; DOMElements.messageInput.style.height = `${Math.min(DOMElements.messageInput.scrollHeight, 120)}px`;
-        });
-        // 回车发送消息功能（Shift+Enter依然是换行）
-        DOMElements.messageInput.addEventListener('keydown', (e) => {
-            if (settings.enterToSendEnabled && e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault(); // 阻止默认的换行
-                const text = DOMElements.messageInput.value.trim();
-                const imageFile = DOMElements.imageInput.files[0];
-                if (text || imageFile) {
-                    sendMessage();
+            DOMElements.messageInput.addEventListener('input', () => {
+                DOMElements.messageInput.style.height = 'auto';
+                DOMElements.messageInput.style.height = `${Math.min(DOMElements.messageInput.scrollHeight, 120)}px`;
+            });
+
+            // 回车发送消息功能（Shift+Enter依然是换行）
+            DOMElements.messageInput.addEventListener('keydown', (e) => {
+                if (settings.enterToSendEnabled && e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault(); // 阻止默认的换行
+                    
+                    // 🌟【新增 2】如果开启了保活，发完立刻把焦点抢回来
+                    if (window._keepKeyboardAlive) {
+                        setTimeout(() => DOMElements.messageInput.focus(), 50);
+                    }
+
+                    const text = DOMElements.messageInput.value.trim();
+                    const imageFile = DOMElements.imageInput.files[0];
+                    if (text || imageFile) {
+                        sendMessage();
+                    }
                 }
-            }
-        });
+            });
+        } // 🌟 这里是函数结尾的大括号，千万别漏了
+
 
        // DOMElements.continueBtn.addEventListener('click', simulateReply);
 
