@@ -88,25 +88,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     try {
-      /* safeAwait(Promise.all([
-            setupEventListeners?.(),
-            initThemeEditor?.(),
-            initAnniversaryModule?.(),
-            initMoodListeners?.(),
-            initDecisionModule?.(),
-            initComboMenu?.()
-        ]));
-
-        if (typeof localforage === 'undefined') {
-            console.warn('LocalForage 未加载，将使用 localStorage 降级方案');
-        }
-
-        updateLoader('正在建立安全连接...', '10%');
-        await safeAwait(initializeSession());*/
         // ========== 修改后 ==========
         if (typeof localforage === 'undefined') {
         console.warn('LocalForage 未加载，将使用 localStorage 降级方案');
         }
+
         updateLoader('正在建立安全连接...', '10%');
 
         // 👇 先初始化 SESSION_ID，再执行其他模块
@@ -226,13 +212,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
         }, 3000);
-
     } catch (err) {
         console.error('严重初始化错误:', err);
         updateLoader('加载遇到问题，已强制进入...', '100%');
         setTimeout(hideWelcomeScreen, 3500);
     }
-
 });
 const stickerInput = document.getElementById('sticker-file-input');
             if (stickerInput) {
@@ -304,7 +288,7 @@ if (myStickerQuickUpload) {
 window.addEventListener('load', function() {
     setTimeout(function() {
         try {
-            if (localStorage.getItem('dailyGreetingShown') === new Date().toDateString()) return;
+            /*if (localStorage.getItem('dailyGreetingShown') === new Date().toDateString()) return;
             try { if (typeof checkPartnerDailyMood === 'function') checkPartnerDailyMood(); } catch(e2) { console.warn('checkPartnerDailyMood error:', e2); }
             if (typeof _buildDailyGreeting === 'function') _buildDailyGreeting();
             if (window.localforage && window.APP_PREFIX) {
@@ -315,6 +299,33 @@ window.addEventListener('load', function() {
                         localStorage.setItem('dailyGreetingShown', new Date().toDateString());
                     }
                 }).catch(function() {
+                    var modal = document.getElementById('daily-greeting-modal');
+                    if (modal) modal.classList.remove('hidden');
+                    localStorage.setItem('dailyGreetingShown', new Date().toDateString());
+                });
+            } else {
+                var modal = document.getElementById('daily-greeting-modal');
+                if (modal) modal.classList.remove('hidden');
+                localStorage.setItem('dailyGreetingShown', new Date().toDateString());
+            }
+                */
+        
+            if (localStorage.getItem('dailyGreetingShown') === new Date().toDateString()) return;
+            try {
+                if (typeof checkPartnerDailyMood === 'function') checkPartnerDailyMood();
+            } catch(e2) {
+                console.warn('checkPartnerDailyMood error:', e2);
+            }
+            if (typeof _buildDailyGreeting === 'function') _buildDailyGreeting();
+            if (window.localforage && window.APP_PREFIX) {
+                localforage.getItem(window.APP_PREFIX + 'tour_seen').then(function(seen) {
+                    if (seen) {
+                        var modal = document.getElementById('daily-greeting-modal');
+                        if (modal) modal.classList.remove('hidden');
+                        localStorage.setItem('dailyGreetingShown', new Date().toDateString());
+                    }
+                }).catch(function() {
+                    // 👇 把原来 else 里面的代码直接挪到 catch 里面来
                     var modal = document.getElementById('daily-greeting-modal');
                     if (modal) modal.classList.remove('hidden');
                     localStorage.setItem('dailyGreetingShown', new Date().toDateString());

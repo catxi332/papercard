@@ -652,7 +652,7 @@ html:not([data-theme="dark"])[data-color-theme="black-white"] .message-sent{
     }
 
     /* ── Send chat message ────────────────────────────────── */
-    function sendCallMsg(dur) {
+    /*function sendCallMsg(dur) {
         if (dur < 2000) return;
         const input = document.getElementById('message-input');
         const send  = document.getElementById('send-btn');
@@ -660,8 +660,45 @@ html:not([data-theme="dark"])[data-color-theme="black-white"] .message-sent{
         const prev = input.value;
         input.value = `📹 视频通话已结束 · ${fmt(dur)}`;
         send.click();
-        setTimeout(() => { if (input.value === input.value) {} }, 80);
+        //setTimeout(() => { if (input.value === input.value) {} }, 80);
+        // ✅ 修复：删除或修正这里原本错误的判断
+        setTimeout(() => {input.value = prev; input.value = ''; }, 150); // 建议稍微延长到 150ms，确保 mousedown 的异步发送逻辑已经读取到值
+    }*/
+    function sendCallMsg(dur) {
+        if (dur < 2000) return;
+        
+        // ✅ 彻底抛弃 input.value 和 send.click()，直接写库！
+        const msgText = `📹 视频通话已结束 · ${fmt(dur)}`;
+        
+        if (typeof window.addMessage === 'function') {
+            window.addMessage({
+            id: Date.now() + Math.random(),
+            sender: 'user',
+            text: msgText,
+            timestamp: new Date(),
+            type: 'normal'
+            });
+            
+            // 顺手触发一下保存和渲染，确保立刻显示
+            if (typeof window.throttledSaveData === 'function') window.throttledSaveData();
+            if (typeof window.renderMessages === 'function') window.renderMessages(true);
+            if (typeof window.playSound === 'function') window.playSound('message');
+            setTimeout(() => {
+                if (typeof window.simulateReply === 'function') {
+                    window.simulateReply();
+                }
+            }, 300);
+        } else {
+            // 极端兜底：如果 addMessage 不存在，再尝试 DOM 模拟
+            const input = document.getElementById('message-input');
+            const send = document.getElementById('send-btn');
+            if (!input || !send) return;
+            input.value = msgText;
+            // 延迟一点点击，避开 endCall 隐藏 UI 的事件风暴
+            setTimeout(() => send.click(), 100);
+        }
     }
+
 
     function sendCallEvent(icon, label, detail) {
     // 优先调用系统中存在的专用函数（支持图标样式）

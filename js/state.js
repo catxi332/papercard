@@ -327,7 +327,7 @@ window._setRegVal = (id, val) => {
         let wishingPoolData = []; 
         // 日程数据
         let calendarEvents = [];
-        let sessionList = [];
+        //let sessionList = [];
         let messages = [];
         let settings = {   
             homeShortcutsCustomEnabled: false,
@@ -432,13 +432,13 @@ window._setRegVal = (id, val) => {
                 content: document.getElementById('stats-content'),
                 closeBtn: document.getElementById('close-stats')
             },
-            sessionModal: {
+            /*sessionModal: {
                 modal: document.getElementById('session-modal'),
                // managerBtn: document.getElementById('session-manager-btn'),
                 list: document.getElementById('session-list'),
                 createBtn: document.getElementById('create-new-session'),
                 cancelBtn: document.getElementById('cancel-session')
-            },
+            },*/
             fortuneModal: {
                 modal: document.getElementById('fortune-lenormand-modal'),
                 content: document.getElementById('fortune-content'),

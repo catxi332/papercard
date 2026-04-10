@@ -154,7 +154,7 @@
         }
     }
 
-    function inferBackupSessionId(lfKeys, appPrefix) {
+   /* function inferBackupSessionId(lfKeys, appPrefix) {
         var pfx = appPrefix || (typeof APP_PREFIX !== 'undefined' ? APP_PREFIX : 'CHAT_APP_V3_');
         var skipParts = ['MIGRATION', 'sessionList', 'lastSessionId', 'customThemes', 'themeSchemes'];
         for (var i = 0; i < lfKeys.length; i++) {
@@ -166,7 +166,7 @@
             if (u > 0) return after.slice(0, u);
         }
         return null;
-    }
+    }*/
 
     function remapLfKey(key, oldSid, newSid, appPrefix) {
         if (!oldSid || !newSid || oldSid === newSid || !key) return key;

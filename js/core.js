@@ -583,13 +583,8 @@ const saveData = async () => {
     }
   });
 
-    /*if (failed.length > 0) {
-        showNotification('部分数据保存失败，请检查存储空间', 'error');
-        // 如果你保留了 showSaveStatus 函数，可以在这里保留错误提示
-        if (typeof showSaveStatus === 'function') showSaveStatus('error');
-    }*/
    // core.js 的 saveData 末尾
-    if (failed.length > 0) {
+   /* if (failed.length > 0) {
     // 过滤出真正是因为空间不足导致的失败
     const quotaErrors = results.filter((r, i) => 
         r.status === 'rejected' && 
@@ -603,7 +598,24 @@ const saveData = async () => {
         // 非空间问题不弹窗吓唬用户，只控制台记录
         console.warn(`[saveData] ${failed.length} 项数据保存异常(非空间问题):`, failed);
     }
+    }*/
+    if (failed.length > 0) {
+        // 过滤出真正是因为空间不足或被浏览器拦截导致的失败
+        const criticalErrors = results.filter((r, i) => r.status === 'rejected' && r.reason && (
+            r.reason.name === 'QuotaExceededError' || 
+            String(r.reason).includes('quota') ||
+            String(r.reason).includes('The user denied permission') ||
+            String(r.reason).includes('A mutation operation was attempted on a database that did not allow mutations') // 手机Edge/Safari常见的无痕/隐私拦截报错
+        ));
+        
+        if (criticalErrors.length > 0) {
+            showNotification('⚠️ 当前浏览器拦截了数据存储（可能是无痕模式、隐私设置或退出时清空数据），页面关闭后数据会丢失！建议更换为 Via、Chrome 或普通Safari。', 'error', 8000);
+        } else {
+            // 非空间/拦截问题不弹窗吓唬用户，只控制台记录
+            console.warn(`[saveData] ${failed.length} 项数据保存异常(非空间问题):`, failed);
+        }
     }
+
     
   _backupCriticalData();
 };
@@ -2419,7 +2431,7 @@ if (customStatuses && customStatuses.length > 0) {
             }
         }
 
-        async function createNewSession(save = true) {
+        /*async function createNewSession(save = true) {
             const id = 'session_' + Date.now() + '_' + Math.random().toString(36).substring(2, 10);
             const newSession = {
                 id: id,
@@ -2431,9 +2443,9 @@ if (customStatuses && customStatuses.length > 0) {
                 await localforage.setItem(`${APP_PREFIX}sessionList`, sessionList);
             }
             return id;
-        }
+        }*/
 
-        async function initializeSession() {
+       /* async function initializeSession() {
             
             await migrateData();
 
@@ -2451,4 +2463,16 @@ if (customStatuses && customStatuses.length > 0) {
             }
 
             await localforage.setItem(`${APP_PREFIX}lastSessionId`, SESSION_ID);
+        }*/
+       async function initializeSession() {
+            await migrateData();
+            // ====== 极简单会话模式：不读列表，不判断哈希，就认死理 ======
+            let currentId = await localforage.getItem(`${APP_PREFIX}lastSessionId`);
+            if (!currentId) {
+                // 只有第一次打开才生成一个，以后永远用它
+                currentId = 'session_' + Date.now() + '_' + Math.random().toString(36).substring(2, 10);
+            }
+            SESSION_ID = currentId;
+            await localforage.setItem(`${APP_PREFIX}lastSessionId`, SESSION_ID);
         }
+
