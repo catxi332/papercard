@@ -124,6 +124,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         updateLoader('正在读取记忆存档...', '40%');
         await safeAwait(loadData());
+        
+        // ====== 页面加载时，恢复用户自定义的字体设置 ======
+        if (settings.customFontUrl && settings.customFontUrl.trim()) {
+        applyCustomFont(settings.customFontUrl.trim()).catch(err => {
+            console.warn('初始化加载自定义字体失败，已回退默认字体:', err);
+        });
+        } else if (settings.messageFontFamily) {
+        // 如果之前存过字体栈（比如跟随系统），也直接应用
+        document.documentElement.style.setProperty('--font-family', settings.messageFontFamily);
+        document.documentElement.style.setProperty('--message-font-family', settings.messageFontFamily);
+        }
 
         updateLoader('正在渲染我们的世界...', '70%');
         
