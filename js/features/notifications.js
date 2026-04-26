@@ -1,6 +1,6 @@
 /**
  * features/notifications.js - 通知 Notifications & Storage
- * 推送通知与存储使用量
+ * 推送通知
  */
 
 function updateStorageUsageBar() {
@@ -129,12 +129,15 @@ window.handleNotifToggle = function(checkbox) {
 };
 
 document.addEventListener('DOMContentLoaded', function() {
-    var toggle = document.getElementById('notif-permission-toggle');
+    var toggle = document.getElementById('notif-switch');
     var statusEl = document.getElementById('notif-status-text');
     if (!toggle) return;
+    
+    // 1. 初始化状态
     var enabled = localStorage.getItem('notifEnabled') === '1';
     var granted = ('Notification' in window) && Notification.permission === 'granted';
     toggle.checked = enabled && granted;
+    
     if (toggle.checked && statusEl) {
         statusEl.textContent = '✅ 已开启 — 当页面在后台时，收到消息会弹出系统通知';
     } else if (statusEl) {
@@ -144,4 +147,10 @@ document.addEventListener('DOMContentLoaded', function() {
             statusEl.textContent = '关闭状态 — 开启后可在后台接收消息提醒';
         }
     }
+
+    // 2. ★ 关键：重新把事件绑定上！用 change 事件，并阻止冒泡
+    toggle.addEventListener('change', function(e) {
+        e.stopPropagation(); // 阻止冒泡，防止触发外层 div 的旧事件
+        window.handleNotifToggle(this); 
+    });
 });

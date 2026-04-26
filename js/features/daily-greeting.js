@@ -298,18 +298,160 @@ window.openDailyGreetingEditor = function() { var modal = document.getElementByI
 window.closeDailyGreetingEditor = function() { var modal = document.getElementById('dg-editor-modal'); if (modal) { modal.style.display = 'none'; modal.classList.remove('active'); } };
 window.saveDailyGreetingCustom = function() { var customData = {}; try { customData = JSON.parse(localStorage.getItem('dg_custom_data') || '{}'); } catch(e) {} var titleEl = document.getElementById('dg-edit-title'); var noteEl = document.getElementById('dg-edit-note'); if (titleEl && titleEl.value.trim()) { var titles = titleEl.value.split('\n').map(function(s){ return s.trim(); }).filter(Boolean); customData.titles = titles; customData.title = titles[0]; } else { delete customData.titles; delete customData.title; } if (noteEl && noteEl.value.trim()) { var notes = noteEl.value.split('\n').map(function(s){ return s.trim(); }).filter(Boolean); customData.notes = notes; customData.note = notes[0]; } else { delete customData.notes; delete customData.note; } localStorage.setItem('dg_custom_data', JSON.stringify(customData)); closeDailyGreetingEditor(); if (typeof _buildDailyGreeting === 'function') _buildDailyGreeting(); if (typeof showNotification === 'function') showNotification('公告已保存 ✦', 'success'); };
 window.clearDgDecoImg = function() { var customData = {}; try { customData = JSON.parse(localStorage.getItem('dg_custom_data') || '{}'); } catch(e) {} delete customData.decoImg; localStorage.setItem('dg_custom_data', JSON.stringify(customData)); var prev = document.getElementById('dg-deco-preview'); if (prev) prev.style.display = 'none'; var wrap = document.getElementById('dg-deco-img-wrap'); if (wrap) wrap.style.display = 'none'; };
-window.clearDgHeaderBg = function() { localStorage.removeItem('dg_header_bg'); var bgEl = document.getElementById('dg-header-band-bg'); if (bgEl) { bgEl.style.backgroundImage = ''; bgEl.classList.remove('has-img'); } };
+window.clearDgHeaderBg = function() { 
+    localStorage.removeItem('dg_header_bg'); 
+    var bgEl = document.getElementById('dg-header-band-bg'); 
+    if (bgEl) { 
+        bgEl.style.backgroundImage = ''; 
+        bgEl.classList.remove('has-img'); 
+         // 👇 加上这两行：把预览框也当场干掉
+        var headerPrev = document.getElementById('dg-header-bg-preview');
+        if (headerPrev) headerPrev.style.display = 'none';
+        
+        if (typeof showNotification === 'function') showNotification('顶部背景已清除', 'success'); 
+    } 
+};
 window.onDgOverlayOpacityChange = function(val) { var tint = parseInt(val) / 100; localStorage.setItem('dg_overlay_bg_tint', tint); var valEl = document.getElementById('dg-overlay-opacity-val'); if (valEl) valEl.textContent = val + '%'; var tintLayer = document.getElementById('dg-card-tint-overlay'); if (tintLayer) tintLayer.style.background = 'rgba(0,0,0,' + tint + ')'; };
 window.handleDgOverlayBgUpload = function(input) { var file = input.files[0]; if (!file) return; var reader = new FileReader(); reader.onload = function(ev) { var data = ev.target.result; localStorage.setItem('dg_overlay_bg', data); applyDgOverlayBg(data); var prev = document.getElementById('dg-overlay-bg-preview'); var prevImg = document.getElementById('dg-overlay-bg-preview-img'); if (prev && prevImg) { prevImg.src = data; prev.style.display = 'block'; } var opRow = document.getElementById('dg-overlay-opacity-row'); if (opRow) opRow.style.display = 'block'; var savedTint = parseFloat(localStorage.getItem('dg_overlay_bg_tint')); var pct = isNaN(savedTint) ? 25 : Math.round(savedTint * 100); var slider = document.getElementById('dg-overlay-opacity-slider'); var valEl = document.getElementById('dg-overlay-opacity-val'); if (slider) slider.value = pct; if (valEl) valEl.textContent = pct + '%'; }; reader.readAsDataURL(file); };
 window.clearDgOverlayBg = function() { localStorage.removeItem('dg_overlay_bg'); applyDgOverlayBg(null); var prev = document.getElementById('dg-overlay-bg-preview'); if (prev) prev.style.display = 'none'; var opRow = document.getElementById('dg-overlay-opacity-row'); if (opRow) opRow.style.display = 'none'; if (typeof showNotification === 'function') showNotification('全屏背景已清除', 'success'); };
 function applyDgOverlayBg(data, tintOpacity) { var card = document.getElementById('daily-greeting-card'); var bgLayer = document.getElementById('dg-card-bg-layer'); var tintLayer = document.getElementById('dg-card-tint-overlay'); if (!card || !bgLayer) return; if (tintOpacity === undefined || tintOpacity === null) { var saved = parseFloat(localStorage.getItem('dg_overlay_bg_tint')); tintOpacity = isNaN(saved) ? 0.25 : saved; } if (data) { bgLayer.style.backgroundImage = 'url(' + data + ')'; bgLayer.style.opacity = '1'; if (tintLayer) tintLayer.style.background = 'rgba(0,0,0,' + tintOpacity + ')'; card.classList.add('has-card-bg'); card.style.backgroundImage = ''; card.style.backgroundSize = ''; card.style.backgroundPosition = ''; card.style.backgroundRepeat = ''; } else { bgLayer.style.backgroundImage = ''; bgLayer.style.opacity = ''; if (tintLayer) tintLayer.style.background = 'rgba(0,0,0,0)'; card.classList.remove('has-card-bg'); } }
 (function() { var savedOverlayBg = localStorage.getItem('dg_overlay_bg'); if (savedOverlayBg) { document.addEventListener('DOMContentLoaded', function() { applyDgOverlayBg(savedOverlayBg); var prev = document.getElementById('dg-overlay-bg-preview'); var prevImg = document.getElementById('dg-overlay-bg-preview-img'); if (prev && prevImg) { prevImg.src = savedOverlayBg; prev.style.display = 'block'; } var opRow = document.getElementById('dg-overlay-opacity-row'); if (opRow) opRow.style.display = 'block'; var savedOp = parseFloat(localStorage.getItem('dg_overlay_bg_tint')); var pct = isNaN(savedOp) ? 25 : Math.round(savedOp * 100); var slider = document.getElementById('dg-overlay-opacity-slider'); var valEl = document.getElementById('dg-overlay-opacity-val'); if (slider) slider.value = pct; if (valEl) valEl.textContent = pct + '%'; }); } })();
-window.switchToAnnouncementPanel = function() { var listArea = document.getElementById('custom-replies-list'); var annPanel = document.getElementById('announcement-panel'); var toolbar = document.getElementById('cr-toolbar'); var subTabs = document.getElementById('cr-sub-tabs'); var addBtn = document.getElementById('add-custom-reply'); var titleEl = document.getElementById('cr-modal-title'); if (listArea) listArea.style.display = 'none'; if (annPanel) { annPanel.style.display = 'block'; annPanel.scrollTop = 0; } if (toolbar) toolbar.style.display = 'none'; if (subTabs) subTabs.style.display = 'none'; if (addBtn) addBtn.style.display = 'none'; if (titleEl) titleEl.textContent = '今日公告配置'; var customData = {}; try { customData = JSON.parse(localStorage.getItem('dg_custom_data') || '{}'); } catch(e2) {} var titleInput = document.getElementById('dg-edit-title'); var noteInput = document.getElementById('dg-edit-note'); if (titleInput) titleInput.value = (customData.titles && customData.titles.length) ? customData.titles.join('\n') : (customData.title || ''); if (noteInput) noteInput.value = (customData.notes && customData.notes.length) ? customData.notes.join('\n') : (customData.note || ''); if (customData.decoImg) { var prev = document.getElementById('dg-deco-preview'); var prevImg = document.getElementById('dg-deco-preview-img'); if (prev && prevImg) { prevImg.src = customData.decoImg; prev.style.display = 'block'; } } var savedOverlayBg2 = localStorage.getItem('dg_overlay_bg'); if (savedOverlayBg2) { var overlayPrev = document.getElementById('dg-overlay-bg-preview'); var overlayPrevImg = document.getElementById('dg-overlay-bg-preview-img'); if (overlayPrev && overlayPrevImg) { overlayPrevImg.src = savedOverlayBg2; overlayPrev.style.display = 'block'; } } renderAnnStatusPool(); };
+//window.switchToAnnouncementPanel = function() { var listArea = document.getElementById('custom-replies-list'); var annPanel = document.getElementById('announcement-panel'); var toolbar = document.getElementById('cr-toolbar'); var subTabs = document.getElementById('cr-sub-tabs'); var addBtn = document.getElementById('add-custom-reply'); var titleEl = document.getElementById('cr-modal-title'); if (listArea) listArea.style.display = 'none'; if (annPanel) { annPanel.style.display = 'block'; annPanel.scrollTop = 0; } if (toolbar) toolbar.style.display = 'none'; if (subTabs) subTabs.style.display = 'none'; if (addBtn) addBtn.style.display = 'none'; if (titleEl) titleEl.textContent = '今日公告配置'; var customData = {}; try { customData = JSON.parse(localStorage.getItem('dg_custom_data') || '{}'); } catch(e2) {} var titleInput = document.getElementById('dg-edit-title'); var noteInput = document.getElementById('dg-edit-note'); if (titleInput) titleInput.value = (customData.titles && customData.titles.length) ? customData.titles.join('\n') : (customData.title || ''); if (noteInput) noteInput.value = (customData.notes && customData.notes.length) ? customData.notes.join('\n') : (customData.note || ''); if (customData.decoImg) { var prev = document.getElementById('dg-deco-preview'); var prevImg = document.getElementById('dg-deco-preview-img'); if (prev && prevImg) { prevImg.src = customData.decoImg; prev.style.display = 'block'; } } var savedOverlayBg2 = localStorage.getItem('dg_overlay_bg'); if (savedOverlayBg2) { var overlayPrev = document.getElementById('dg-overlay-bg-preview'); var overlayPrevImg = document.getElementById('dg-overlay-bg-preview-img'); if (overlayPrev && overlayPrevImg) { overlayPrevImg.src = savedOverlayBg2; overlayPrev.style.display = 'block'; } } renderAnnStatusPool(); };
+window.switchToAnnouncementPanel = function() {
+    currentMajorTab = 'announcement';
+    _batchModeActive = false;
+    _batchSelectedIndices.clear();
+    _searchVisible = false;
+    _searchQuery = '';
+    _activeGroupFilter = null;
+    renderReplyLibrary();
+// 补全预览图回显逻辑
+    setTimeout(function() {
+        var customData = {};
+        try { customData = JSON.parse(localStorage.getItem('dg_custom_data') || '{}'); } catch(e) {}
+
+        // 回显顶部背景
+        var savedHeaderBg = localStorage.getItem('dg_header_bg');
+        if (savedHeaderBg) {
+            var hp = document.getElementById('dg-header-bg-preview');
+            var hpImg = document.getElementById('dg-header-bg-preview-img');
+            if (hp && hpImg) { hpImg.src = savedHeaderBg; hp.style.display = 'block'; }
+        }
+        // 回显卡片背景
+        var savedOverlayBg = localStorage.getItem('dg_overlay_bg');
+        if (savedOverlayBg) {
+            var op = document.getElementById('dg-overlay-bg-preview');
+            var opImg = document.getElementById('dg-overlay-bg-preview-img');
+            if (op && opImg) { opImg.src = savedOverlayBg; op.style.display = 'block'; }
+            var opRow = document.getElementById('dg-overlay-opacity-row');
+            if (opRow) opRow.style.display = 'block';
+        }
+        // 回显装饰图
+        if (customData.decoImg) {
+            var dp = document.getElementById('dg-deco-preview');
+            var dpImg = document.getElementById('dg-deco-preview-img');
+            if (dp && dpImg) { dpImg.src = customData.decoImg; dp.style.display = 'block'; }
+        }
+    }, 50);
+};
+
+
 window.renderAnnStatusPool = function() { var listEl = document.getElementById('ann-status-pool-list'); if (!listEl) return; var pool = []; try { pool = JSON.parse(localStorage.getItem('dg_status_pool') || '[]'); } catch(e2) {} listEl.innerHTML = ''; if (pool.length === 0) { listEl.innerHTML = '<div style="font-size:12px;color:var(--text-secondary);text-align:center;padding:10px 0;opacity:0.6;">暂无条目，添加后将随机抽取</div>'; return; } pool.forEach(function(item, idx) { var row = document.createElement('div'); row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:9px 12px;background:linear-gradient(135deg,rgba(var(--accent-color-rgb),0.05),rgba(var(--accent-color-rgb),0.02));border-radius:12px;border:1px solid rgba(var(--accent-color-rgb),0.15);font-size:13px;transition:box-shadow 0.2s;'; var iconHtml = item.iconImg ? '<img src="' + item.iconImg + '" style="width:26px;height:26px;border-radius:50%;object-fit:cover;flex-shrink:0;">' : '<span style="font-size:18px;min-width:26px;text-align:center;flex-shrink:0;">' + (item.icon || '✦') + '</span>'; row.innerHTML = iconHtml + '<div style="flex:1;min-width:0;">' + '<div style="color:var(--text-primary);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + (item.status || '—') + '</div>' + (item.label ? '<div style="color:var(--accent-color);font-size:10px;letter-spacing:1.5px;margin-top:2px;opacity:0.8;">' + item.label + '</div>' : '') + '</div>' + '<button onclick="removeAnnStatusPoolItem(' + idx + ')" style="background:none;border:none;color:var(--text-secondary);cursor:pointer;font-size:14px;padding:3px 5px;border-radius:6px;opacity:0.6;transition:opacity 0.2s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6">✕</button>'; listEl.appendChild(row); }); };
 window.addAnnStatusPoolItem = function() { var statusInput = document.getElementById('ann-status-pool-input'); var labelInput = document.getElementById('ann-status-label-input'); var iconInput = document.getElementById('ann-status-icon-input'); var status = statusInput ? statusInput.value.trim() : ''; var label = labelInput ? labelInput.value.trim() : ''; var icon = iconInput ? iconInput.value.trim() : ''; var iconImg = iconInput ? (iconInput.dataset.imgSrc || '') : ''; if (!status && !label) { if (typeof showNotification === 'function') showNotification('请至少填写状态或标签', 'warning'); return; } var pool = []; try { pool = JSON.parse(localStorage.getItem('dg_status_pool') || '[]'); } catch(e2) {} var entry = { status: status, label: label, icon: icon || '✦' }; if (iconImg) entry.iconImg = iconImg; pool.push(entry); localStorage.setItem('dg_status_pool', JSON.stringify(pool)); if (statusInput) statusInput.value = ''; if (labelInput) labelInput.value = ''; if (iconInput) { iconInput.value = ''; delete iconInput.dataset.imgSrc; } renderAnnStatusPool(); if (typeof showNotification === 'function') showNotification('已添加到随机库', 'success'); };
 window.handleAnnStatusIconUpload = function(input) { var file = input.files[0]; if (!file) return; var reader = new FileReader(); reader.onload = function(ev) { var iconInput = document.getElementById('ann-status-icon-input'); if (iconInput) { iconInput.dataset.imgSrc = ev.target.result; iconInput.value = '[图片]'; iconInput.style.fontSize = '10px'; } }; reader.readAsDataURL(file); };
 window.removeAnnStatusPoolItem = function(idx) { var pool = []; try { pool = JSON.parse(localStorage.getItem('dg_status_pool') || '[]'); } catch(e2) {} pool.splice(idx, 1); localStorage.setItem('dg_status_pool', JSON.stringify(pool)); renderAnnStatusPool(); };
-document.addEventListener('DOMContentLoaded', function() { var headerInput = document.getElementById('dg-header-img-input'); if (headerInput) { headerInput.addEventListener('change', function(e) { var file = e.target.files[0]; if (!file) return; var reader = new FileReader(); reader.onload = function(ev) { var data = ev.target.result; localStorage.setItem('dg_header_bg', data); var bgEl = document.getElementById('dg-header-band-bg'); if (bgEl) { bgEl.style.backgroundImage = 'url(' + data + ')'; bgEl.classList.add('has-img'); } }; reader.readAsDataURL(file); }); } var decoInput = document.getElementById('dg-deco-img-input'); if (decoInput) { decoInput.addEventListener('change', function(e) { var file = e.target.files[0]; if (!file) return; var reader = new FileReader(); reader.onload = function(ev) { var data = ev.target.result; var customData = {}; try { customData = JSON.parse(localStorage.getItem('dg_custom_data') || '{}'); } catch(ex) {} customData.decoImg = data; localStorage.setItem('dg_custom_data', JSON.stringify(customData)); var prev = document.getElementById('dg-deco-preview'); var prevImg = document.getElementById('dg-deco-preview-img'); if (prev && prevImg) { prevImg.src = data; prev.style.display = 'block'; } }; reader.readAsDataURL(file); }); } });
+document.addEventListener('DOMContentLoaded', function() { 
+    var headerInput = document.getElementById('dg-header-img-input'); 
+    if (headerInput) { 
+        headerInput.addEventListener('change', function(e) { 
+            var file = e.target.files[0]; if (!file) return; 
+            var reader = new FileReader();
+            reader.onload = function(ev) { 
+                var data = ev.target.result; 
+                localStorage.setItem('dg_header_bg', data); 
+                var bgEl = document.getElementById('dg-header-band-bg'); 
+                if (bgEl) { 
+                    bgEl.style.backgroundImage = 'url(' + data + ')'; 
+                    bgEl.classList.add('has-img'); 
+                } 
+                var headerPrev = document.getElementById('dg-header-bg-preview');
+                var headerPrevImg = document.getElementById('dg-header-bg-preview-img');
+                if (headerPrev && headerPrevImg) {
+                    headerPrevImg.src = data;
+                    headerPrev.style.display = 'block';
+                }
+            }; 
+            reader.readAsDataURL(file); 
+        }); 
+    } 
+    var decoInput = document.getElementById('dg-deco-img-input'); 
+    if (decoInput) { 
+        decoInput.addEventListener('change', function(e) { 
+            var file = e.target.files[0]; 
+            if (!file) return; 
+            var reader = new FileReader(); reader.onload = function(ev) { 
+                var data = ev.target.result; 
+                var customData = {}; try { 
+                    customData = JSON.parse(localStorage.getItem('dg_custom_data') || '{}'); 
+                } catch(ex) {} customData.decoImg = data; 
+                localStorage.setItem('dg_custom_data', JSON.stringify(customData)); 
+                var prev = document.getElementById('dg-deco-preview'); 
+                var prevImg = document.getElementById('dg-deco-preview-img'); 
+                if (prev && prevImg) { 
+                    prevImg.src = data; prev.style.display = 'block'; 
+                } 
+            }; reader.readAsDataURL(file); 
+        }); 
+    } 
+});
+// ==========================================
+// 页面加载时：自动恢复公告管理面板里的预览图状态
+// ==========================================
+setTimeout(function() {
+    var customData = {};
+    try { customData = JSON.parse(localStorage.getItem('dg_custom_data') || '{}'); } catch(e) {}
+
+    // 1. 恢复：顶部背景图预览
+    var savedHeaderBg = localStorage.getItem('dg_header_bg');
+    if (savedHeaderBg) {
+        var headerPrev = document.getElementById('dg-header-bg-preview');
+        var headerPrevImg = document.getElementById('dg-header-bg-preview-img');
+        if (headerPrev && headerPrevImg) {
+            headerPrevImg.src = savedHeaderBg;
+            headerPrev.style.display = 'block';
+        }
+    }
+
+    // 2. 恢复：卡片内背景图预览
+    var savedOverlayBg = localStorage.getItem('dg_overlay_bg');
+    if (savedOverlayBg) {
+        var overlayPrev = document.getElementById('dg-overlay-bg-preview');
+        var overlayPrevImg = document.getElementById('dg-overlay-bg-preview-img');
+        if (overlayPrev && overlayPrevImg) {
+            overlayPrevImg.src = savedOverlayBg;
+            overlayPrev.style.display = 'block';
+        }
+        var opRow = document.getElementById('dg-overlay-opacity-row');
+        if (opRow) opRow.style.display = 'block';
+        var savedOp = parseFloat(localStorage.getItem('dg_overlay_bg_tint'));
+        var pct = isNaN(savedOp) ? 25 : Math.round(savedOp * 100);
+        var slider = document.getElementById('dg-overlay-opacity-slider');
+        var valEl = document.getElementById('dg-overlay-opacity-val');
+        if (slider) slider.value = pct;
+        if (valEl) valEl.textContent = pct + '%';
+    }
+
+    // 3. 恢复：装饰图预览
+    if (customData.decoImg) {
+        var decoPrev = document.getElementById('dg-deco-preview');
+        var decoPrevImg = document.getElementById('dg-deco-preview-img');
+        if (decoPrev && decoPrevImg) {
+            decoPrevImg.src = customData.decoImg;
+            decoPrev.style.display = 'block';
+        }
+    }
+}, 100);
+
 window.updateDynamicNames = function() { try { var pName = (typeof settings !== 'undefined' && settings.partnerName) ? settings.partnerName : '梦角'; var mName = (typeof settings !== 'undefined' && settings.myName) ? settings.myName : '我'; var tabPartner = document.getElementById('mood-tab-partner'); if (tabPartner) tabPartner.textContent = pName + '的记录'; var tabMe = document.getElementById('mood-tab-me'); if (tabMe) tabMe.textContent = mName + '的记录'; var detailPartnerTitle = document.getElementById('detail-partner-title'); if (detailPartnerTitle) detailPartnerTitle.textContent = pName + '的'; var partnerNoRec = document.getElementById('detail-partner-no-record'); if (partnerNoRec) { var msgEl = partnerNoRec; if (!msgEl.querySelector('span')) msgEl.textContent = pName + ' 这天还没有留下记录'; } var editPartnerBtn = document.getElementById('edit-partner-mood'); if (editPartnerBtn) editPartnerBtn.textContent = '修改' + pName; var deletePartnerBtn = document.getElementById('delete-partner-mood'); if (deletePartnerBtn) deletePartnerBtn.textContent = '删除' + pName; var continueBtn = document.getElementById('continue-btn'); if (continueBtn) continueBtn.title = '让' + pName + '继续说'; var envInfo = document.querySelector('.env-send-info'); if (envInfo) { var textNodes = Array.from(envInfo.childNodes).filter(n => n.nodeType === 3); textNodes.forEach(function(n) { if (n.textContent.includes('对方将在') || n.textContent.includes('小时内回信')) { n.textContent = pName + ' 将在 10-24 小时内回信（8-12 句话）'; } }); } setDgLabel('dg-section-label-partner', pName + ' 今日状态'); setDgLabel('dg-weather-label', pName + ' 的天气'); setDgLabel('dg-status-label', pName + ' 的状态'); var envInfoSpan = document.getElementById('env-reply-time-info'); if (envInfoSpan) envInfoSpan.textContent = pName + ' 将在 10-24 小时内回信（8-12 句话）'; var pokeInput = document.getElementById('poke-input'); if (pokeInput) pokeInput.placeholder = '例如：拍了拍"' + pName + '"的肩膀'; document.querySelectorAll('[data-name-partner]').forEach(function(el) { el.textContent = pName + '的记录'; }); document.querySelectorAll('[data-name-me]').forEach(function(el) { el.textContent = mName + '的记录'; }); document.querySelectorAll('[data-delete-partner]').forEach(function(el) { el.textContent = '删除' + pName; }); document.querySelectorAll('[data-edit-partner]').forEach(function(el) { el.textContent = '修改' + pName; }); } catch(e) { console.warn('updateDynamicNames error:', e); } };
 function setDgLabel(id, txt) { var el = document.getElementById(id); if (el && el.tagName !== 'INPUT') el.textContent = txt; }
 window.closeDailyGreeting = function() { try { var modal = document.getElementById('daily-greeting-modal'); if (modal) { modal.style.opacity = '0'; modal.style.transition = 'opacity 0.3s ease'; setTimeout(function() { modal.classList.add('hidden'); modal.style.opacity = ''; modal.style.transition = ''; }, 320); } localStorage.setItem('dailyGreetingShown', new Date().toDateString()); } catch(e) {} };

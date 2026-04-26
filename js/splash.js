@@ -279,6 +279,7 @@
             if (nextBtn)  nextBtn.style.display  = '';
             if (enterBtn) enterBtn.style.display = 'none';
         }
+        
     }
 
     function enterSite() {

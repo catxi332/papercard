@@ -666,7 +666,7 @@ document.getElementById('chat-settings').addEventListener('click', () => {
         '#typing-indicator-toggle': { prop: 'typingIndicatorEnabled', name: '正在输入' },
         '#read-no-reply-toggle': { prop: 'allowReadNoReply', name: '已读不回' },
         '#emoji-mix-toggle': { prop: 'emojiMixEnabled', name: '表情消息' },
-        '#enter-send-toggle': { prop: 'enterToSendEnabled', name: '回车发送消息' }
+        //'#enter-send-toggle': { prop: 'enterToSendEnabled', name: '回车发送消息' }
     };
     for (const [selector, { prop }] of Object.entries(toggleSyncMap)) {
         const el = document.querySelector(selector);
@@ -676,13 +676,13 @@ document.getElementById('chat-settings').addEventListener('click', () => {
     const svSlider = document.getElementById('sound-volume-slider');
     const svVal = document.getElementById('sound-volume-value');
     if (svSlider) { svSlider.value = Math.round((settings.soundVolume || 0.15) * 100); if (svVal) svVal.textContent = svSlider.value + '%'; }
-    const csi = document.getElementById('custom-sound-url-input');
-    if (csi) csi.value = settings.customSoundUrl || '';
+   // const csi = document.getElementById('custom-sound-url-input');
+  //  if (csi) csi.value = settings.customSoundUrl || '';
     document.querySelectorAll('.time-fmt-opt').forEach(opt => {
         opt.classList.toggle('active', opt.dataset.fmt === (settings.timeFormat || 'HH:mm'));
     });
-    const autoToggle = document.getElementById('auto-send-toggle');
-    if (autoToggle) autoToggle.classList.toggle('active', !!settings.autoSendEnabled);
+    //const autoToggle = document.getElementById('auto-send-toggle');
+    //if (autoToggle) autoToggle.classList.toggle('active', !!settings.autoSendEnabled);
     updateAutoSendUI();
     const boardWriteToggle = document.getElementById('board-partner-write-toggle');
     if (boardWriteToggle) boardWriteToggle.classList.toggle('active', !!settings.boardPartnerWriteEnabled);
@@ -1273,10 +1273,16 @@ document.getElementById('chat-settings').addEventListener('click', () => {
                 });
             });
             
-            const minDelaySlider = document.getElementById('reply-delay-min-slider');
-            const minDelayValue = document.getElementById('reply-delay-min-value');
-            const maxDelaySlider = document.getElementById('reply-delay-max-slider');
-            const maxDelayValue = document.getElementById('reply-delay-max-value');
+           // const minDelaySlider = document.getElementById('reply-delay-min-slider');
+            //const minDelayValue = document.getElementById('reply-delay-min-value');
+           // const maxDelaySlider = document.getElementById('reply-delay-max-slider');
+           // const maxDelayValue = document.getElementById('reply-delay-max-value');
+           // ✅ 新的输入框获取
+const minDelayInput = document.getElementById('reply-delay-min-input');
+const maxDelayInput = document.getElementById('reply-delay-max-input');
+const minTextInput = document.getElementById('reply-text-min-input');
+const maxTextInput = document.getElementById('reply-text-max-input');
+
 
             window.switchCsTab = function switchCsTab(btn) {
                 document.querySelectorAll('.cs-tab').forEach(t => t.classList.remove('active'));
@@ -1286,7 +1292,7 @@ document.getElementById('chat-settings').addEventListener('click', () => {
                 if (panel) panel.classList.add('active');
             };
 
-            function updateDelayUI() {
+           /* function updateDelayUI() {
                 minDelaySlider.value = settings.replyDelayMin;
                 const minSec = settings.replyDelayMin / 1000;
                 minDelayValue.textContent = minSec >= 60 ? `${(minSec/60).toFixed(1)}分钟` : `${minSec.toFixed(0)}s`;
@@ -1294,10 +1300,17 @@ document.getElementById('chat-settings').addEventListener('click', () => {
                 const maxSec = settings.replyDelayMax / 1000;
                 maxDelayValue.textContent = maxSec >= 60 ? `${(maxSec/60).toFixed(1)}分钟` : `${maxSec.toFixed(0)}s`;
                 maxDelaySlider.min = settings.replyDelayMin; 
+            }*/
+           function updateDelayUI() {
+                if (minDelayInput) minDelayInput.value = Math.round((settings.replyDelayMin || 3000) / 1000);
+                if (maxDelayInput) maxDelayInput.value = Math.round((settings.replyDelayMax || 7000) / 1000);
+                if (minTextInput) minTextInput.value = settings.replyTextMin || 1;
+                if (maxTextInput) maxTextInput.value = settings.replyTextMax || 10;
             }
+
             updateDelayUI();
 
-            minDelaySlider.addEventListener('input', (e) => {
+            /*minDelaySlider.addEventListener('input', (e) => {
                 settings.replyDelayMin = parseInt(e.target.value, 10);
                 if (settings.replyDelayMin > settings.replyDelayMax) {
                     settings.replyDelayMax = settings.replyDelayMin;
@@ -1313,7 +1326,52 @@ document.getElementById('chat-settings').addEventListener('click', () => {
                 }
                 updateDelayUI();
             });
-            maxDelaySlider.addEventListener('change', throttledSaveData);
+            maxDelaySlider.addEventListener('change', throttledSaveData);*/
+            // ===== 回复速度输入框 =====
+            if (minDelayInput) {
+                minDelayInput.addEventListener('input', () => {
+                    settings.replyDelayMin = Math.max(1000, parseInt(minDelayInput.value) * 1000 || 3000);
+                    if (settings.replyDelayMin > settings.replyDelayMax) {
+                        settings.replyDelayMax = settings.replyDelayMin;
+                        if (maxDelayInput) maxDelayInput.value = parseInt(minDelayInput.value);
+                    }
+                });
+                minDelayInput.addEventListener('change', throttledSaveData);
+            }
+            if (maxDelayInput) {
+                maxDelayInput.addEventListener('input', () => {
+                    settings.replyDelayMax = Math.max(1000, parseInt(maxDelayInput.value) * 1000 || 7000);
+                    if (settings.replyDelayMax < settings.replyDelayMin) {
+                        settings.replyDelayMin = settings.replyDelayMax;
+                        if (minDelayInput) minDelayInput.value = parseInt(maxDelayInput.value);
+                    }
+                });
+                maxDelayInput.addEventListener('change', throttledSaveData);
+            }
+
+            // ===== 回复条数输入框 =====
+            if (minTextInput) {
+                minTextInput.addEventListener('input', () => {
+                    settings.replyTextMin = Math.max(1, Math.min(10, parseInt(minTextInput.value) || 1));
+                    if (settings.replyTextMin > settings.replyTextMax) {
+                        settings.replyTextMax = settings.replyTextMin;
+                        if (maxTextInput) maxTextInput.value = minTextInput.value;
+                    }
+                });
+                minTextInput.addEventListener('change', throttledSaveData);
+            }
+            if (maxTextInput) {
+                maxTextInput.addEventListener('input', () => {
+                    settings.replyTextMax = Math.max(1, Math.min(10, parseInt(maxTextInput.value) || 10));
+                    if (settings.replyTextMax < settings.replyTextMin) {
+                        settings.replyTextMin = settings.replyTextMax;
+                        if (minTextInput) minTextInput.value = maxTextInput.value;
+                    }
+                });
+                maxTextInput.addEventListener('change', throttledSaveData);
+            }
+
+
 
             const settingToggles = {
                 '#reply-toggle': {prop: 'replyEnabled', name: '引用回复'},
@@ -1323,12 +1381,10 @@ document.getElementById('chat-settings').addEventListener('click', () => {
                 '#read-no-reply-toggle': { prop: 'allowReadNoReply', name: '已读不回' },
                 '#emoji-mix-toggle': { prop: 'emojiMixEnabled', name: '表情混入消息' },
                 '#enter-send-toggle': { prop: 'enterToSendEnabled', name: '回车发送消息' },
-                '#keep-keyboard-alive-toggle': { prop: 'keepKeyboardAlive', name: '发送后保留键盘' } // 🌟【新增】
+                '#keep-keyboard-alive-toggle': { prop: 'keepKeyboardAlive', name: '发送后保留键盘' }, // 🌟【新增】
             };
 
-            for (const [selector, {
-                prop, name
-            }] of Object.entries(settingToggles)) {
+            /*for (const [selector, {prop, name}] of Object.entries(settingToggles)) {
                 const element = document.querySelector(selector);
                 if (!element) continue;
 
@@ -1347,7 +1403,113 @@ document.getElementById('chat-settings').addEventListener('click', () => {
                     if (prop !== 'soundEnabled') renderMessages(true);
                     showNotification(`${name}已${settings[prop] ? '开启': '关闭'}`, 'success');
                 });
+            }*/
+            for (const [selector, { prop, name }] of Object.entries(settingToggles)) {
+                const element = document.querySelector(selector);
+                if (!element) continue;
+                if (settings[prop] === undefined) settings[prop] = false;
+                const _initVal = prop === 'emojiMixEnabled' ? (settings[prop] !== false) : !!settings[prop];
+                element.classList.toggle('active', _initVal);
+                
+                element.addEventListener('click', () => {
+                    if (prop === 'emojiMixEnabled' && settings[prop] === undefined) settings[prop] = true;
+                    settings[prop] = !settings[prop];
+                    if (prop === 'keepKeyboardAlive') {
+                        window._keepKeyboardAlive = settings[prop];
+                    }
+                    throttledSaveData();
+                    
+                    // 🌟 容错处理：如果 updateUI 会因为新加的设置报错，就把它包在 try 里，保证 UI 切换正常
+                    try {
+                        updateUI();
+                    } catch(e) {
+                        console.warn(`[开关] 执行 updateUI 时遇到非致命错误，已忽略:`, e);
+                    }
+                    
+                    element.classList.toggle('active', !!settings[prop]);
+                    if (prop !== 'soundEnabled') renderMessages(true);
+                    showNotification(`${name}已${settings[prop] ? '开启': '关闭'}`, 'success');
+                });
             }
+            // ========== 独立开关：直接读写 localStorage，彻底解决双重数据源冲突 ==========
+            function bindLsToggle(selector, storageKey, defaultVal, name, onChange) {
+                const el = document.querySelector(selector);
+                if (!el) return;
+                const stored = localStorage.getItem(storageKey);
+                let val = stored === null ? defaultVal : (stored === '1' || stored === 'true');
+                el.classList.toggle('active', val);
+                el.addEventListener('click', () => {
+                    val = !val;
+                    localStorage.setItem(storageKey, val ? '1' : '0');
+                    el.classList.toggle('active', val);
+                    if (typeof onChange === 'function') onChange(val);
+                    showNotification(`${name}已${val ? '开启' : '关闭'}`, 'success');
+                });
+            }
+
+            //bindLsToggle('#notif-toggle-row', 'notifEnabled', false, '后台消息推送');
+        // ========== 单独处理“后台消息推送”开关 ==========
+            var notifRow = document.querySelector('#notif-toggle-row');
+            if (!notifRow) return;
+
+            // 1. 初始化状态
+            var val = localStorage.getItem('notifEnabled') === '1';
+            notifRow.classList.toggle('active', val);
+
+            // 2. 绑定点击事件
+            notifRow.addEventListener('click', function() {
+                val = !val;
+
+                // 如果是尝试打开
+                if (val) {
+                    if (!('Notification' in window)) {
+                        val = false;
+                        showNotification('您的浏览器不支持通知功能', 'error');
+                        notifRow.classList.remove('active');
+                        return;
+                    }
+
+                    // 去请求系统权限
+                    Notification.requestPermission().then(function(perm) {
+                        if (perm === 'granted') {
+                            // 真正同意了，才保存状态、改UI、弹“已开启”
+                            localStorage.setItem('notifEnabled', '1');
+                            notifRow.classList.add('active');
+                            showNotification('后台消息推送已开启', 'success'); // ★ 统一的弹窗
+                            
+                            // 如果你有别的文件里的初始化逻辑，可以写在这里
+                        } else {
+                            // 拒绝了，把状态弹回去，弹“已关闭”
+                            val = false;
+                            localStorage.setItem('notifEnabled', '0');
+                            notifRow.classList.remove('active');
+                            showNotification('后台消息推送已关闭', 'info'); // ★ 统一的弹窗
+                        }
+                    }).catch(function() {
+                        val = false;
+                        notifRow.classList.remove('active');
+                        showNotification('后台消息推送已关闭', 'info');
+                    });
+
+                } else {
+                    // 如果是关闭，直接保存，弹“已关闭”
+                    localStorage.setItem('notifEnabled', '0');
+                    notifRow.classList.remove('active');
+                    showNotification('后台消息推送已关闭', 'info'); // ★ 统一的弹窗
+                }
+            });
+
+
+            bindLsToggle('#call-enabled-toggle', 'callFeatureEnabled', true, '模拟视频通话', function(val) {
+                if (window.callFeature) {
+                    if (!val && window.callFeature.endCall) window.callFeature.endCall();
+                }
+                const btn = document.getElementById('call-toolbar-btn');
+                if (btn) btn.style.display = val ? '' : 'none';
+            });
+
+            bindLsToggle('#call-reject-toggle', 'callRejectEnabled', true, '对方可主动拒接');
+
 
             // --- 已读不回概率滑动条逻辑 ---
             const rnrToggle = document.querySelector('#read-no-reply-toggle');

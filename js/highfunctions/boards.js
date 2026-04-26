@@ -986,77 +986,47 @@ window._bv2_saveGlobalEdit = async function() {
 };
 
 window._bv2_cancelGlobalEdit = function() {
-  const threads = currentView === 'me' ? boardData.myThreads : boardData.partnerThreads;
-  const thread = threads.find(t => t.id === currentThreadId);
-  if (!thread) return;
+    const threads = currentView === 'me' ? boardData.myThreads : boardData.partnerThreads;
+    const thread = threads.find(t => t.id === currentThreadId);
+    if (!thread) return;
 
-  // 1. 还原文本
-  thread.replies.forEach(r => {
-    if (r.text) {
-      const el = document.getElementById(`bv2-text-${r.id}`);
-      if (el && el.classList.contains('editing')) {
-        el.textContent = el.dataset.originalText || r.text;
-        el.contentEditable = false;
-        el.classList.remove('editing');
-        delete el.dataset.originalText;
-      }
-    }
-  });
-
-  // 2. 还原图片（恢复查看大图功能，重置显示状态）
-  thread.replies.forEach(r => {
-    if (r.image) {
-      const imgWrapper = document.getElementById(`bv2-img-${r.id}`);
-      const imgEl = imgWrapper ? imgWrapper.querySelector('img') : null;
-      if (imgEl) {
-        // 恢复原来的点击事件
-        if (imgEl.dataset.origOnclick) {
-          imgEl.setAttribute('onclick', imgEl.dataset.origOnclick);
-          delete imgEl.dataset.origOnclick;
+    // 1. 还原文本
+    thread.replies.forEach(r => {
+        if (r.text) {
+            const el = document.getElementById(`bv2-text-${r.id}`);
+            if (el && el.classList.contains('editing')) {
+                el.textContent = el.dataset.originalText || r.text;
+                el.contentEditable = false;
+                el.classList.remove('editing');
+                delete el.dataset.originalText;
+            }
         }
-        imgEl.onclick = null;
-        imgEl.style.cursor = 'pointer';
-        // 恢复被隐藏的图片
-        imgWrapper.style.display = 'inline-block';
-      }
-    }
-  });
+    });
 
-  window._bv2_imgEdits = {};
-  restoreDetailViewUI();
-};
+    // 2. 移除图片蒙层，恢复透明度与点击事件
+    document.querySelectorAll('.img-edit-overlay').forEach(ov => ov.remove());
+    thread.replies.forEach(r => {
+        if (r.image) {
+            const imgWrapper = document.getElementById(`bv2-img-${r.id}`);
+            const imgEl = imgWrapper ? imgWrapper.querySelector('img') : null;
+            if (imgEl) {
+                // 恢复查看大图功能
+                if (imgEl.dataset.origOnclick) {
+                    imgEl.setAttribute('onclick', imgEl.dataset.origOnclick);
+                    delete imgEl.dataset.origOnclick;
+                }
+                imgEl.onclick = null;
+                imgEl.style.opacity = '1';
+                imgEl.classList.remove('editing');
+                // 恢复被隐藏的图片
+                if (imgWrapper) imgWrapper.style.display = 'inline-block';
+            }
+        }
+    });
 
-// 重写取消，清除图片编辑状态和蒙层
-window._bv2_cancelGlobalEdit = function() {
-  const threads = currentView === 'me' ? boardData.myThreads : boardData.partnerThreads;
-  const thread = threads.find(t => t.id === currentThreadId);
-  if (!thread) return;
-
-  // 1. 还原文本
-  thread.replies.forEach(r => {
-    if (r.text) {
-      const el = document.getElementById(`bv2-text-${r.id}`);
-      if (el && el.classList.contains('editing')) {
-        el.textContent = el.dataset.originalText || r.text;
-        el.contentEditable = false;
-        el.classList.remove('editing');
-        delete el.dataset.originalText;
-      }
-    }
-  });
-
-  // 2. 移除图片蒙层，恢复透明度
-  document.querySelectorAll('.img-edit-overlay').forEach(ov => ov.remove());
-  thread.replies.forEach(r => {
-    if (r.image) {
-      const imgEl = document.getElementById(`bv2-img-${r.id}`);
-      if (imgEl) { imgEl.style.opacity = '1'; imgEl.classList.remove('editing'); }
-    }
-  });
-
-  // 3. 清空状态
-  window._bv2_imgEdits = {};
-  restoreDetailViewUI();
+    // 3. 清空状态
+    window._bv2_imgEdits = {};
+    restoreDetailViewUI();
 };
 
 // 内部公用：恢复界面的默认状态
@@ -1085,9 +1055,6 @@ window.setBoardDataV2 = function(newData) {
 window._bv2_openCompose = openCompose;
 window._bv2_submitPost = submitPost;
 window._bv2_handleImgSelect = handleImgSelect;
-window._bv2_toggleGlobalEdit = function() { /* 保留原本复杂的逻辑在下面 */ };
-window._bv2_saveGlobalEdit = function() { /* 保留原本复杂的逻辑在下面 */ };
-window._bv2_cancelGlobalEdit = function() { /* 保留原本复杂的逻辑在下面 */ };
 window._bv2_deleteThread = deleteThread;
 window._bv2_exportSelected = exportSelected;
 window._bv2_exitMultiSelectMode = exitMultiSelectMode;

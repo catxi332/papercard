@@ -101,232 +101,6 @@ function closeScreenshotModal() {
 }
 
 /**
- * 3. 初始化消息选择列表 (支持倒序、日期筛选、主题样式)
-
-function initScreenshotSelection() {
-    const container = document.getElementById('message-selection-container');
-    const selectedCount = document.getElementById('selected-count');
-    const saveBtn = document.getElementById('save-selected-messages');
-    
-    if (!container) {
-        console.error('message-selection-container not found in DOM');
-        const modalContent = document.querySelector('#screenshot-select-modal .modal-content');
-        if (modalContent) {
-            const newContainer = document.createElement('div');
-            newContainer.id = 'message-selection-container';
-            modalContent.insertBefore(newContainer, modalContent.firstChild);
-            container = newContainer;
-        } else {
-            showNotification('截图模态框结构错误', 'error');
-            closeScreenshotModal();
-            return;
-        }
-    }
-
-    // 动态插入日期筛选工具栏
-    let filterBar = document.getElementById('screenshot-date-filter-bar');
-    if (!filterBar) {
-        filterBar = document.createElement('div');
-        filterBar.id = 'screenshot-date-filter-bar';
-        filterBar.style.cssText = 'display: flex; gap: 8px; margin-bottom: 12px; padding: 10px; background: var(--primary-bg); border-radius: 12px; align-items: center; flex-wrap: wrap;';
-        filterBar.innerHTML = `
-            <input type="date" id="screenshot-filter-date" style="flex:1; padding: 8px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 13px; background: var(--secondary-bg); color: var(--text-primary);">
-            <button id="screenshot-filter-btn" class="modal-btn modal-btn-secondary" style="padding: 8px 12px; font-size: 12px;">跳转</button>
-            <button id="screenshot-filter-clear-btn" class="modal-btn modal-btn-secondary" style="padding: 8px 12px; font-size: 12px; opacity: 0.7;">显示全部</button>
-        `;
-        container.parentNode.insertBefore(filterBar, container);
-    }
-
-    container.innerHTML = '';
-    
-    // 从 state.js 的 messages 数组获取消息
-    let currentMessages = [];
-    if (typeof messages !== 'undefined' && Array.isArray(messages)) {
-        currentMessages = [...messages];
-    } else if (window.messages && Array.isArray(window.messages)) {
-        currentMessages = [...window.messages];
-    }
-
-    if (currentMessages.length === 0) {
-        container.innerHTML = '<div style="text-align:center; padding:30px; color:var(--text-secondary);">没有可截图的聊天记录</div>';
-        if(saveBtn) saveBtn.disabled = true;
-        return;
-    }
-
-    // ===== 【修改1】倒序排列：最新消息在最上面 =====
-    const allMessagesSorted = [...currentMessages].sort((a, b) => b.timestamp - a.timestamp);
-
-        // 渲染列表
-    function renderList(msgs) {
-        container.innerHTML = '';
-        msgs.forEach((msg) => {
-            const isUser = msg.sender === 'user';
-            const time = new Date(msg.timestamp).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
-            const safeText = (msg.text || '').replace(/</g, "&lt;").replace(/>/g, "&gt;");
-
-            // 【新增】生成引用预览HTML
-            let replyPreviewHTML = '';
-            if (msg.replyTo) {
-                const replySender = msg.replyTo.sender === 'user' ? (settings.myName || '我') : (settings.partnerName || '对方');
-                let replyText = msg.replyTo.text ? msg.replyTo.text.slice(0, 20) : '[图片]';
-                if (msg.replyTo.text && msg.replyTo.text.length > 20) replyText += '...';
-                
-                // 样式设置为淡灰色，与主消息区分
-                replyPreviewHTML = `
-                    <div class="reply-indicator-preview" style="
-                        font-size: 11px; 
-                        color: var(--text-secondary); 
-                        opacity: 0.6; 
-                        margin-bottom: 4px;
-                        padding-left: 8px; 
-                        border-left: 2px solid var(--border-color); 
-                        line-height: 1.3; 
-                        white-space: nowrap; 
-                        overflow: hidden;
-                        text-overflow: ellipsis;
-                    ">
-                        <span style="color: var(--accent-color); margin-right: 4px; font-weight: 600;">${replySender}</span>
-                        <span style="font-style: italic; opacity: 0.8;">${replyText}</span>
-                    </div>
-                `;
-            }
-
-            const item = document.createElement('div');
-            item.className = 'message-selection-item';
-            item.dataset.id = msg.id;
-            item.dataset.timestamp = msg.timestamp;
-            item.innerHTML = `
-                <input type="checkbox" class="message-checkbox" style="width:18px; height:18px; margin-right:12px; cursor:pointer; flex-shrink:0;">
-                <div style="flex:1; min-width:0;">
-                    <!-- 这里插入了引用预览 -->
-                    ${replyPreviewHTML}
-                    <div style="font-size:14px; margin-bottom:2px; word-break:break-all;">${safeText}</div>
-                    <div style="font-size:11px; color:var(--text-secondary); display:flex; justify-content:space-between;">
-                        <span style="font-weight:500; color:${isUser ? 'var(--accent-color)' : 'var(--text-primary)'};">${isUser ? '我' : '对方'}</span>
-                        <span>${time}</span>
-                    </div>
-                </div>
-            `;
-            // ... 后面的点击事件绑定保持不变 ...
-            const checkbox = item.querySelector('.message-checkbox');
-            item.addEventListener('click', (e) => {
-                if (e.target !== checkbox) checkbox.checked = !checkbox.checked;
-                updateCount();
-            });
-            container.appendChild(item);
-        });
-    }
-    
-
-    renderList(allMessagesSorted);
-
-    // 更新计数函数
-    function updateCount() {
-        const count = container.querySelectorAll('.message-checkbox:checked').length;
-        if (selectedCount) selectedCount.textContent = count;
-        if (saveBtn) saveBtn.disabled = count === 0;
-    }
-    
-    // 绑定控制按钮
-    const selectAllBtn = document.getElementById('select-all');
-    const selectNoneBtn = document.getElementById('select-none');
-    const cancelBtn = document.getElementById('cancel-screenshot-select');
-    
-    if (selectAllBtn) {
-        selectAllBtn.onclick = () => {
-            //container.querySelectorAll('.message-checkbox:visible').forEach(c => c.checked = true);
-            container.querySelectorAll('.message-checkbox').forEach(c => c.checked = true);
-            updateCount();
-        };
-    }
-    
-    if (selectNoneBtn) {
-        selectNoneBtn.onclick = () => {
-            container.querySelectorAll('.message-checkbox:checked').forEach(c => c.checked = false);
-            updateCount();
-        };
-    }
-    
-    if (cancelBtn) {
-        cancelBtn.onclick = closeScreenshotModal;
-    }
-    
-    // 头像显示开关
-    const avatarToggle = document.getElementById('screenshot-show-avatar');
-    if (avatarToggle) {
-        const savedPref = localStorage.getItem('screenshot-show-avatar');
-        avatarToggle.checked = savedPref === 'true';
-        avatarToggle.addEventListener('change', (e) => {
-            localStorage.setItem('screenshot-show-avatar', e.target.checked);
-        });
-    }
-
-    // ===== 【修改2】日期筛选逻辑 =====
-    const dateInput = document.getElementById('screenshot-filter-date');
-    const filterBtn = document.getElementById('screenshot-filter-btn');
-    const clearBtn = document.getElementById('screenshot-filter-clear-btn');
-
-    if (filterBtn && dateInput) {
-        filterBtn.onclick = () => {
-            const selectedDate = dateInput.value; // YYYY-MM-DD
-            if (!selectedDate) {
-                renderList(allMessagesSorted);
-                return;
-            }
-
-            // 筛选当天的消息
-            const filtered = allMessagesSorted.filter(msg => {
-                const msgDate = new Date(msg.timestamp).toISOString().split('T')[0];
-                return msgDate === selectedDate;
-            });
-
-            renderList(filtered);
-            
-            // 如果有一条，模拟跳转（这里只是选中第一条）
-            if (filtered.length > 0) {
-                const firstItem = container.querySelector('.message-selection-item');
-                if (firstItem) {
-                    firstItem.style.background = 'rgba(var(--accent-color-rgb), 0.1)';
-                    setTimeout(() => { firstItem.style.background = ''; }, 2000);
-                }
-            }
-        };
-    }
-
-    if (clearBtn) {
-        clearBtn.onclick = () => {
-            dateInput.value = '';
-            renderList(allMessagesSorted);
-        };
-    }
-
-    // 保存按钮点击事件
-    if (saveBtn) {
-        saveBtn.onclick = () => {
-            const checkedItems = container.querySelectorAll('.message-checkbox:checked');
-            const selectedMsgs = [];
-            
-            checkedItems.forEach(cb => {
-                const itemEl = cb.closest('.message-selection-item');
-                const msgId = itemEl.dataset.id;
-                const foundMsg = currentMessages.find(m => String(m.id) === String(msgId));
-                if (foundMsg) selectedMsgs.push(foundMsg);
-            });
-            
-            if (selectedMsgs.length === 0) {
-                showNotification('请选择消息', 'warning');
-                return;
-            }
-            
-            closeScreenshotModal();
-            generateScreenshot(selectedMsgs);
-        };
-    }
-    
-    updateCount();
-} */
-
-/**
  * 3. 初始化消息选择列表 (优化版：支持批量选取、无提示、全交互)
  */
 function initScreenshotSelection() {
@@ -409,7 +183,8 @@ function initScreenshotSelection() {
         msgs.forEach((msg) => {
             const isUser = msg.sender === 'user';
             const time = new Date(msg.timestamp).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
-            const safeText = (msg.text || '').replace(/</g, "&lt;").replace(/>/g, "&gt;");
+           // const safeText = (msg.text || '').replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            let safeText = (msg.text || '').replace(/</g, "&lt;").replace(/>/g, "&gt;");
             // 获取图片地址（兼容 msg.image 或 msg.sticker 字段）
             const imgUrl = msg.image || msg.sticker || msg.img || '';
             let imgPreviewHTML = '';
@@ -429,6 +204,45 @@ function initScreenshotSelection() {
                 `;
             }
 
+            // ===== 新增：处理特殊消息的预览文本 =====
+            let displayText = safeText;
+            let isSpecialType = false;
+            let specialIcon = '';
+            
+            if (msg.type === 'system') {
+                isSpecialType = true;
+                displayText = msg.text || '拍了拍'; 
+                
+                // ✅ 核心修复：如果是“我”发的拍一拍，强制修正文本展示
+                const myNameStr = settings.myName || '我';
+                if (msg.sender === 'user') {
+                    // 如果文本里没有“我”也没有我的昵称，说明是机器生成的无主语文本，手动补上
+                    if (!displayText.includes('我') && !displayText.includes(myNameStr)) {
+                        displayText = `${myNameStr} ${displayText}`;
+                    }
+                } else {
+                    // 如果是对方发的，确保文本里能体现是对方
+                    const partnerNameStr = settings.partnerName || '对方';
+                    if (!displayText.includes(partnerNameStr) && !displayText.includes('对方')) {
+                        displayText = `${partnerNameStr} ${displayText}`;
+                    }
+                }
+            } else if (msg.type === 'call-event') {
+                isSpecialType = true;
+                if (msg.callIcon === 'fa-phone-slash') {
+                    specialIcon = '📵';
+                } else {
+                    specialIcon = '📹';
+                }
+                displayText = safeText; 
+            }
+
+            // 如果是特殊类型，覆盖掉原本的 safeText 用于显示
+            if (isSpecialType) {
+                safeText = `<span style="color:var(--text-secondary); font-style:italic;">${specialIcon} ${displayText}</span>`;
+            }
+
+
             const item = document.createElement('div');
             item.className = 'message-selection-item';
             item.dataset.id = msg.id;
@@ -440,7 +254,10 @@ function initScreenshotSelection() {
                     <div style="font-size:14px; margin-bottom:2px; word-break:break-all;">${safeText}</div>
                      ${imgPreviewHTML} 
                     <div style="font-size:11px; color:var(--text-secondary); display:flex; justify-content:space-between;">
-                        <span style="font-weight:500; color:${isUser ? 'var(--accent-color)' : 'var(--text-primary)'};">${isUser ? '我' : '对方'}</span>
+                        <!--<span style="font-weight:500; color:${isUser ? 'var(--accent-color)' : 'var(--text-primary)'};">${isUser ? '我' : '对方'}</span>-->
+                        <span style="font-weight:500; color:${msg.sender === 'user' ? 'var(--accent-color)' : 'var(--text-primary)'};">
+                            ${msg.sender === 'user' ? (settings.myName || '我') : (settings.partnerName || '对方')}
+                        </span>
                         <span>${time}</span>
                     </div>
                 </div>
@@ -694,325 +511,6 @@ function generateTxtFile(msgs) {
     showNotification('TXT 文档已导出', 'success');
 }
 
- 
-/*async function generateScreenshot(msgs) {
-    showNotification('正在生成截图...', 'info');
-
-    // 1. 强制等待字体加载完成
-    if (document.fonts && document.fonts.ready) {
-        await document.fonts.ready;
-    }
-    await new Promise(resolve => setTimeout(resolve, 100));
-
-    let tempContainer = null;
-    try {
-        const root = document.documentElement;
-        const computedStyle = getComputedStyle(root);
-
-        // 获取样式变量
-        const fontFamily = computedStyle.getPropertyValue('--message-font-family').trim() || "'Noto Serif SC', serif";
-        const accentColor = computedStyle.getPropertyValue('--accent-color').trim() || '#c5a47e';
-        const secondaryBg = computedStyle.getPropertyValue('--secondary-bg').trim() || '#f0f0f0';
-        const primaryBg = computedStyle.getPropertyValue('--primary-bg').trim() || '#ffffff';
-        const textPrimary = computedStyle.getPropertyValue('--text-primary').trim() || '#1a1a1a';
-        const textSecondary = computedStyle.getPropertyValue('--text-secondary').trim() || '#7a7a7a';
-        const messageFontWeight = computedStyle.getPropertyValue('--message-font-weight').trim() || '400';
-        const messageLineHeight = computedStyle.getPropertyValue('--message-line-height').trim() || '1.5';
-        const bubbleStyle = settings.bubbleStyle || 'standard';
-        const showAvatar = localStorage.getItem('screenshot-show-avatar') === 'true';
-
-        // 【修复位置】定义头像圆角：直接根据设置里的形状来判断
-      let avatarRadius = '50%'; // 默认圆形
-      const currentShape = settings.myAvatarShape || settings.partnerAvatarShape || 'circle';
-      if (currentShape === 'square') {
-        // 如果是方形，尝试读取滑块设置的圆角，没设置就用默认8px
-        try {
-          const radiusVar = computedStyle.getPropertyValue('--avatar-corner-radius').trim();
-          avatarRadius = (radiusVar && radiusVar !== '') ? radiusVar : '8px';
-        } catch(e) {
-          avatarRadius = '8px';
-        }
-      } else {
-        avatarRadius = '50%'; // 圆形就直接给正圆
-      }
-
-      // 背景设置：彻底无视主题背景，强制平铺指定图片
-      let bgStyle = `background-color: #ffffff;`; // 默认白底防透明
-      
-      try {
-        // 获取你选择用来做背景的图片（优先读取设置里的背景图）
-        let bgSrc = '';
-        
-        // 1. 尝试从设置里拿
-        if (settings.backgroundUrl) {
-           bgSrc = settings.backgroundUrl;
-        } else {
-           // 2. 尝试从页面的真实背景层拿
-           const bgLayer = document.getElementById('real-bg-layer');
-           if (bgLayer) {
-             const bgImg = bgLayer.querySelector('img');
-             if (bgImg && bgImg.src) bgSrc = bgImg.src;
-           }
-        }
-
-        // 只要拿到了安全的本地图片，就强行铺满
-        if (bgSrc && (bgSrc.startsWith('data:') || bgSrc.startsWith(window.location.origin) || bgSrc.startsWith('blob:'))) {
-          bgStyle = `
-            background-image: url('${bgSrc}'); 
-            background-size: 100% auto; 
-            background-position: top center; 
-            background-repeat: repeat-y; 
-            background-color: #ffffff;
-          `;
-        }
-      } catch (e) {
-        console.warn('截图获取平铺背景失败:', e);
-      }
-
-        // 头像URL获取
-        let myAvatarUrl = '';
-        let partnerAvatarUrl = '';
-        if (showAvatar) {
-            // 修正：右侧是用户，左侧是系统
-            const myAvatarImg = document.querySelector('.user-info:last-child .avatar img');
-            const partnerAvatarImg = document.querySelector('.user-info:first-child .avatar img');
-            if (myAvatarImg) myAvatarUrl = myAvatarImg.src;
-            if (partnerAvatarImg) partnerAvatarUrl = partnerAvatarImg.src;
-        }
-
-        // 消息排序
-        const sortedMsgs = [...msgs].sort((a, b) => a.timestamp - b.timestamp);
-        const firstDate = new Date(sortedMsgs[0].timestamp).toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', year: 'numeric' });
-        const lastDate = new Date(sortedMsgs[sortedMsgs.length - 1].timestamp).toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', year: 'numeric' });
-        let dateTitle = firstDate;
-        if (firstDate !== lastDate) dateTitle = `${firstDate} - ${lastDate}`;
-
-        // 生成 HTML
-        const chatParts = [];
-        
-        // 头部
-        chatParts.push(`
-            <div style="font-family:sans-serif; max-width: 100%; margin: auto; position: relative; z-index: 1; background: transparent;">
-                <div style="text-align:center; margin-bottom:20px; padding:10px 0; font-size:18px; font-weight:600; color: #333; border-bottom: 1px solid #ddd; letter-spacing: 1px;">
-                    聊天记录 · 共 ${sortedMsgs.length} 条消息
-                </div>
-                <div style="background: transparent; padding: 0;">
-        `);
-
-        // 循环消息
-        sortedMsgs.forEach((msg, index) => {
-            const isUser = msg.sender === 'user';
-           // const safeText = (msg.text || '').replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
-           // 1. 处理纯文本
-            const safeText = (msg.text || '').replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
-
-            // 2. 处理表情包/图片 (支持 msg.image 或 msg.sticker 等字段)
-            let imageHtml = '';
-			// 兼容各种可能存储图片的字段名
-			const imgUrl = msg.image || msg.sticker || msg.img || msg.fileUrl || '';
-			if (imgUrl) {
-				// 【新增防卡顿核心】判断是不是本地图片或者同源图片
-				const isSafeImg = imgUrl.startsWith('data:') || imgUrl.startsWith(window.location.origin);
-				if (isSafeImg) {
-					// 安全图片：正常显示
-					const safeUrl = imgUrl.replace(/"/g, '&quot;');
-					const isOnlyImage = !safeText;
-					//const imgStyle = isOnlyImage ? 'max-width:100%; border-radius:12px; display:block;' : 'max-width:180px; max-height:180px; border-radius:8px; display:block; margin-top:6px;';
-					const imgStyle = 'max-width:150px; max-height:150px; border-radius:12px; display:block; object-fit:contain;';
-                    imageHtml = `<img src="${safeUrl}" style="${imgStyle}" onerror="this.style.display='none'">`;
-				} else {
-					// 外部图床图片：用文字代替，防止 html2canvas 强行加载导致卡死
-					imageHtml = `<div style="font-size:12px;color:#999;padding:5px 0;">[图片]</div>`;
-				}
-			}
-
-
-            // 生成时间戳（根据设置中的格式）
-           // 生成时间戳（连续同发送者只在最后一条显示）
-            const fmt = settings.timeFormat || 'HH:mm';
-            let timeStrHTML = '';
-            if (fmt !== 'off') {
-                const nextMsg = sortedMsgs[index + 1];
-                const isLastInGroup = !nextMsg || nextMsg.sender !== msg.sender;
-                if (isLastInGroup) {
-                    const ts = new Date(msg.timestamp);
-                    let timeStr;
-                    if (fmt === 'HH:mm:ss') {
-                        timeStr = ts.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
-                    } else if (fmt === 'h:mm AM/PM') {
-                        timeStr = ts.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-                    } else if (fmt === 'h:mm:ss AM/PM') {
-                        timeStr = ts.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
-                    } else {
-                        timeStr = ts.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false });
-                    }
-                    const tsColor = isUser ? 'rgba(255,255,255,0.7)' : textSecondary;
-                    const tsAlign = isUser ? 'right' : 'left';
-                    timeStrHTML = `<div style="font-size:11px;color:${tsColor};margin-top:5px;text-align:${tsAlign};font-weight:500;opacity:0.7;">${timeStr}</div>`;
-                }
-            }
-
-            // 引用内容
-            let replyContent = '';
-            if (msg.replyTo) {
-                const replySender = msg.replyTo.sender === 'user' ? (settings.myName || '我') : (settings.partnerName || '对方');
-                let replyText = msg.replyTo.text ? msg.replyTo.text.slice(0, 40) : '[图片]';
-                if (msg.replyTo.text && msg.replyTo.text.length > 40) replyText += '...';
-                
-                if (isUser) {
-                    replyContent = `<div style="display:flex;flex-direction:column;border-left:3px solid rgba(255,255,255,0.7);padding:5px 10px 5px 9px;margin-bottom:7px;background-color:rgba(255,255,255,0.18);border-radius:0 8px 8px 0;overflow:hidden;"><div style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.9);margin-bottom:2px;">${replySender}</div><div style="font-size:12px;color:rgba(255,255,255,0.75);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-style:italic;max-width:200px;">${replyText}</div></div>`;
-                } else {
-                    replyContent = `<div style="display:flex;flex-direction:column;border-left:3px solid ${accentColor};padding:5px 10px 5px 9px;margin-bottom:7px;background-color:rgba(var(--primary-bg-rgb),0.55);border-radius:0 8px 8px 0;overflow:hidden;"><div style="font-size:11px;font-weight:600;color:${accentColor};margin-bottom:2px;">${replySender}</div><div style="font-size:12px;color:${textSecondary};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-style:italic;max-width:200px;">${replyText}</div></div>`;
-                }
-            }
-
-        // 气泡样式
-            let bubbleStyleCSS = '';
-            if (bubbleStyle === 'rounded') bubbleStyleCSS = 'border-radius: 20px;';
-            else if (bubbleStyle === 'rounded-large') bubbleStyleCSS = 'border-radius: 24px;';
-            else if (bubbleStyle === 'square') bubbleStyleCSS = 'border-radius: 8px;';
-            // 【新增】判断是否为纯表情包（无文字且无引用回复），如果是，背景透明
-            const isOnlyImageMsg = !safeText && !replyContent;
-            let bubbleInnerStyle = '';
-            if (isOnlyImageMsg) {
-                // 纯表情包模式：背景透明、无内边距、无阴影（和CSS里的 .message-image-bubble-none 一致）
-                bubbleInnerStyle = 'display:inline-block; padding:0; border-radius:12px; background:transparent; max-width:100%; text-align:left;';
-            } else {
-                // 正常模式：带气泡背景
-                bubbleInnerStyle = `display:inline-block; padding:10px 15px; border-radius:18px; background:${isUser ? accentColor : secondaryBg}; max-width:100%; color:${isUser ? '#fff' : textPrimary}; text-align:left; font-size:15px; word-break:break-word; ${bubbleStyleCSS} box-shadow: 0 3px 6px rgba(0,0,0,0.1);`;
-            }
-
-            // 头像 HTML
-            // 头像 HTML（✨ 修复跨域卡死：过滤外部图床链接）
-            const avatarSize = 35;
-            const avatarUrl = isUser ? myAvatarUrl : partnerAvatarUrl;
-            // 判断是不是安全的本地数据（base64）或者同源链接
-            const isSafeImg = avatarUrl && (avatarUrl.startsWith('data:') || avatarUrl.startsWith(window.location.origin));
-
-            let avatarHTML = '';
-            if (showAvatar) {
-                if (isSafeImg) {
-                    // 安全图片：正常渲染 <img>
-                    avatarHTML = `<img src="${avatarUrl}" style="width:${avatarSize}px; height:${avatarSize}px; border-radius:${avatarRadius}; object-fit:cover; flex-shrink:0; border: 2px solid rgba(255,255,255,0.3);">`;
-                } else {
-                    // 外部跨域图片（如图床）：用纯色文字代替，彻底避免 html2canvas 卡死
-                    avatarHTML = `<div style="width:${avatarSize}px; height:${avatarSize}px; border-radius:${avatarRadius}; background:${isUser ? accentColor : '#e0e0e0'}; display:flex; align-items:center; justify-content:center; color:${isUser ? '#fff' : '#999'}; font-size:14px; flex-shrink:0; border: 2px solid rgba(255,255,255,0.3);">${isUser ? '我' : 'T'}</div>`;
-                }
-            }
-           		// 拼接消息块
-            if (showAvatar) {
-                chatParts.push(`
-                <div style="margin:16px 0; display:flex; align-items:flex-start; gap:12px; flex-direction:${isUser ? 'row-reverse' : 'row'};">
-                    ${avatarHTML}
-                    <div style="display:flex; flex-direction:column; max-width:calc(80% - ${avatarSize + 12}px); align-items:${isUser ? 'flex-end' : 'flex-start'};">
-                    <div style="${bubbleInnerStyle}">
-                        ${replyContent}
-                        ${safeText}
-                        ${imageHtml}
-                    </div>
-                    ${timeStrHTML}
-                    </div>
-                </div>
-                `);
-            } else {
-                chatParts.push(`
-                <div style="margin:16px 0; display:flex; flex-direction:column; align-items:${isUser ? 'flex-end' : 'flex-start'};">
-                    <div style="${bubbleInnerStyle}">
-                        ${replyContent}
-                        ${safeText}
-                        ${imageHtml}
-                    </div>
-                    ${timeStrHTML}
-                </div>
-                `);
-            }
-
-        });
-
-        // 尾部
-        chatParts.push(`
-                </div>
-                <div style="text-align:center; margin-top:20px; padding:10px; font-size:12px; color: #888; border-top: 1px solid #eee; border-radius: 0 0 12px 12px;">
-                    ${dateTitle}
-                </div>
-            </div>
-        `);
-
-        // 创建临时容器
-        tempContainer = document.createElement('div');
-        const phoneWidth = 375;
-        tempContainer.style.cssText = `
-            position:fixed; left:-9999px; top:0;
-            width:${phoneWidth}px;
-            ${bgStyle}
-            color:${textPrimary};
-            font-family: ${fontFamily};
-            font-weight: ${messageFontWeight};
-            line-height: ${messageLineHeight};
-            padding: 30px 20px;
-            border-radius: 10px;
-            overflow: hidden;
-        `;
-        tempContainer.innerHTML = chatParts.join('');
-        // ✨ 注入用户的自定义气泡 CSS（让高级自定义代码也能在截图里生效）
-        document.body.appendChild(tempContainer);
-
-        // 生成截图
-        const canvas = await html2canvas(tempContainer, {
-            backgroundColor: null,
-            scale: 5,
-            useCORS: false,
-            logging: false,
-            windowWidth: phoneWidth,
-            allowTaint: true,
-            ignoreElements: (element) => {
-                if (element.tagName === 'IMG' && element.src) {
-                    const src = element.src;
-                    // 只放过：data: / 同源 / blob:（localforage）
-                    const isSafe = src.startsWith('data:') || src.startsWith(window.location.origin) || src.startsWith('blob:');
-                    if (!isSafe) return true; // 外部图床直接跳过，防卡死
-                }
-                return false;
-            },
-
-            onclone: (clonedDoc) => {
-                const clonedContainer = clonedDoc.body.querySelector('div[style*="width: 375px"]');
-                
-                // 1. 注入基础字体
-                const fontStyle = clonedDoc.createElement('style');
-                fontStyle.textContent = ` * { font-family: ${fontFamily} !important; } `;
-                if (clonedContainer) clonedContainer.insertBefore(fontStyle, clonedContainer.firstChild);
-
-                // 2. ✨ 核心修复：把用户的自定义气泡 CSS 注入到克隆文档中！
-                const userBubbleCSS = document.getElementById('user-custom-bubble-style');
-                if (userBubbleCSS && userBubbleCSS.textContent) {
-                    const bubbleStyle = clonedDoc.createElement('style');
-                    bubbleStyle.textContent = userBubbleCSS.textContent;
-                    if (clonedContainer) {
-                        clonedContainer.insertBefore(bubbleStyle, clonedContainer.firstChild);
-                    } else {
-                        clonedDoc.head.appendChild(bubbleStyle);
-                    }
-                }
-            }
-
-        });
-
-        const url = canvas.toDataURL('image/png');
-        if (tempContainer && tempContainer.parentNode) {
-            document.body.removeChild(tempContainer);
-        }
-        showScreenshotPreview(url, sortedMsgs.length, canvas.width, canvas.height);
-
-    } catch (error) {
-        console.error('截图生成失败:', error);
-        showNotification('截图失败: ' + error.message, 'error');
-        if (tempContainer && tempContainer.parentNode) {
-            document.body.removeChild(tempContainer);
-        }
-    }
-}*/
-
 async function generateScreenshot(msgs) {
     showNotification('正在生成截图，消息较多会自动分张...', 'info');
 
@@ -1048,6 +546,7 @@ async function generateScreenshot(msgs) {
             const computedStyle = getComputedStyle(root);
             const fontFamily = computedStyle.getPropertyValue('--message-font-family').trim() || "'Noto Serif SC', serif";
             const accentColor = computedStyle.getPropertyValue('--accent-color').trim() || '#c5a47e';
+            const accentColorRgb = computedStyle.getPropertyValue('--accent-color-rgb').trim() || '197, 164, 126';
             const secondaryBg = computedStyle.getPropertyValue('--secondary-bg').trim() || '#f0f0f0';
             const primaryBg = computedStyle.getPropertyValue('--primary-bg').trim() || '#ffffff';
             const textPrimary = computedStyle.getPropertyValue('--text-primary').trim() || '#1a1a1a';
@@ -1062,20 +561,25 @@ async function generateScreenshot(msgs) {
             if (currentShape === 'square') {
                 try { const r = computedStyle.getPropertyValue('--avatar-corner-radius').trim(); avatarRadius = (r && r !== '') ? r : '8px'; } catch(e) { avatarRadius = '8px'; }
             }
-
-            // 背景设置：彻底无视主题背景，强制平铺指定图片
-            let bgStyle = `background-color: #ffffff;`;
+            // 背景设置 (适配 #real-bg-layer 新逻辑)
+            let bgStyle = `background-color: ${primaryBg};`;
             try {
-                let bgSrc = '';
-                if (settings.backgroundUrl) bgSrc = settings.backgroundUrl;
-                else {
-                    const bgLayer = document.getElementById('real-bg-layer');
-                    if (bgLayer) { const bgImg = bgLayer.querySelector('img'); if (bgImg && bgImg.src) bgSrc = bgImg.src; }
+            const bgLayer = document.getElementById('real-bg-layer');
+            if (bgLayer) {
+                const bgImg = bgLayer.querySelector('img');
+                if (bgImg && bgImg.src) {
+                const bgSrc = bgImg.src;
+                // 关键：必须包含 blob: 判断，否则 localforage 存的图会被跳过
+                const isSafeImg = bgSrc.startsWith('data:') || bgSrc.startsWith(window.location.origin) || bgSrc.startsWith('blob:');
+                if (isSafeImg) {
+                    const isCoverMode = bgLayer.classList.contains('mode-cover');
+                    bgStyle = `background-color: ${primaryBg}; background-image: url('${bgSrc}'); background-size: ${isCoverMode ? 'cover' : 'contain'}; background-position: center center; background-repeat: no-repeat;`;
                 }
-                if (bgSrc && (bgSrc.startsWith('data:') || bgSrc.startsWith(window.location.origin) || bgSrc.startsWith('blob:'))) {
-                    bgStyle = `background-image: url('${bgSrc}'); background-size: 100% auto; background-position: top center; background-repeat: repeat-y; background-color: #ffffff;`;
                 }
-            } catch (e) { console.warn('获取背景失败:', e); }
+            }
+            } catch (e) {
+            console.warn('截图获取背景失败:', e);
+            }
 
             let myAvatarUrl = '', partnerAvatarUrl = '';
             if (showAvatar) {
@@ -1101,17 +605,70 @@ async function generateScreenshot(msgs) {
                 </div>
                 <div style="background: transparent; padding: 0;">
             `);
-
             currentSliceMsgs.forEach((msg, index) => {
                 const isUser = msg.sender === 'user';
                 const safeText = (msg.text || '').replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
-                let imageHtml = '';
-                const imgUrl = msg.image || msg.sticker || msg.img || msg.fileUrl || '';
-                if (imgUrl) {
-                    const isSafeImg = imgUrl.startsWith('data:') || imgUrl.startsWith(window.location.origin);
-                    if (isSafeImg) { imageHtml = `<img src="${imgUrl.replace(/"/g, '&quot;')}" style="max-width:150px; max-height:150px; border-radius:12px; display:block; object-fit:contain;" onerror="this.style.display='none'">`; }
-                    else { imageHtml = `<div style="font-size:12px;color:#999;padding:5px 0;">[图片]</div>`; }
+                const msgType = msg.type || 'normal';
+
+                // ===== 唯一的特殊消息拦截守卫（只保留这一个） =====
+                if (msgType === 'system' || msgType === 'call-event') {
+                    let finalMsgHtml = '';
+                    if (msgType === 'system') {
+                        const displayText = msg.text || '拍了拍';
+                        finalMsgHtml = `
+                            <div style="display:flex; justify-content:center; margin:16px 0;">
+                                <span style="font-size:12px; color:${textSecondary}; letter-spacing:1px;">${displayText}</span>
+                            </div>
+                        `;
+                    } else if (msgType === 'call-event') {
+                        const isMissed = msg.callIcon === 'fa-phone-slash';
+                        const eventIcon = isMissed ? '📵' : '📹';
+                        let pillBg, pillBorderColor, pillTextColor;
+                        if (isMissed) {
+                            pillBg = 'rgba(255, 80, 80, 0.06)';
+                            pillBorderColor = 'rgba(255, 80, 80, 0.2)';
+                            pillTextColor = 'rgba(255, 80, 80, 0.75)';
+                        } else {
+                            pillBg = `rgba(${accentColorRgb}, 0.06)`;
+                            pillBorderColor = `rgba(${accentColorRgb}, 0.18)`;
+                            pillTextColor = textSecondary;
+                        }
+                        const detailText = msg.callDetail || '';
+                        
+                        finalMsgHtml = `<div style="display:flex; justify-content:center; padding:4px 16px; margin:4px 0;">
+                            <div style="display:inline-flex; align-items:center; gap:7px; border-radius:20px; padding:6px 13px 6px 10px; font-size:12px; font-weight:500; letter-spacing:0.2px; border:1px solid ${pillBorderColor}; background:${pillBg}; color:${pillTextColor}; position:relative;">
+                                <span style="font-size:11px; opacity:0.75; flex-shrink:0;">${eventIcon}</span>
+                                <span style="max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${safeText}</span>
+                                ${detailText ? `<span style="font-variant-numeric:tabular-nums; opacity:0.65; font-size:11px; flex-shrink:0;"><span style="margin-right:4px;">·</span>${detailText}</span>` : ''}
+                            </div>
+                        </div>`;
+                    }
+
+                    if (finalMsgHtml) {
+                        chatParts.push(`<div style="display:flex; flex-direction:column; align-items:center; margin:8px 0;">${finalMsgHtml}</div>`);
+                    }
+                    return; // 🚀 这是唯一有效的拦截点
                 }
+                // ===== 拦截结束 =====
+
+                let imageHtml = '';
+                    // 兼容各种可能存储图片的字段名
+                    const imgUrl = msg.image || msg.sticker || msg.img || msg.fileUrl || '';
+                    if (imgUrl) {
+                        // 【新增防卡顿核心】判断是不是本地图片或者同源图片
+                        const isSafeImg = imgUrl.startsWith('data:') || imgUrl.startsWith(window.location.origin);
+                        if (isSafeImg) {
+                            // 安全图片：正常显示
+                            const safeUrl = imgUrl.replace(/"/g, '&quot;');
+                            const isOnlyImage = !safeText;
+                            //const imgStyle = isOnlyImage ? 'max-width:100%; border-radius:12px; display:block;' : 'max-width:180px; max-height:180px; border-radius:8px; display:block; margin-top:6px;';
+                            const imgStyle = 'max-width:150px; max-height:150px; border-radius:12px; display:block; object-fit:contain;';
+                            imageHtml = `<img src="${safeUrl}" style="${imgStyle}" onerror="this.style.display='none'">`;
+                        } else {
+                            // 外部图床图片：用文字代替，防止 html2canvas 强行加载导致卡死
+                            imageHtml = `<div style="font-size:12px;color:#999;padding:5px 0;">[图片]</div>`;
+                        }
+                    }
 
                 let timeStrHTML = '';
                 const fmt = settings.timeFormat || 'HH:mm';
@@ -1138,30 +695,86 @@ async function generateScreenshot(msgs) {
                     else replyContent = `<div style="display:flex;flex-direction:column;border-left:3px solid ${accentColor};padding:5px 10px 5px 9px;margin-bottom:7px;background-color:rgba(0,0,0,0.03);border-radius:0 8px 8px 0;overflow:hidden;"><div style="font-size:11px;font-weight:600;color:${accentColor};margin-bottom:2px;">${replySender}</div><div style="font-size:12px;color:${textSecondary};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-style:italic;max-width:200px;">${replyText}</div></div>`;
                 }
 
-                let bubbleStyleCSS = '';
-                if (bubbleStyle === 'rounded') bubbleStyleCSS = 'border-radius: 20px;';
-                else if (bubbleStyle === 'rounded-large') bubbleStyleCSS = 'border-radius: 24px;';
-                else if (bubbleStyle === 'square') bubbleStyleCSS = 'border-radius: 8px;';
+                // 获取当前气泡样式的配置表
+                const styleMap = {
+                    'standard':      { recv: '16px 16px 16px 4px',  sent: '16px 16px 4px 16px',  recvShadow: '0 2px 10px rgba(0,0,0,0.08)', sentShadow: `0 3px 12px rgba(${accentColorRgb},0.22)` },
+                    'rounded':       { recv: '18px 18px 18px 6px',  sent: '18px 18px 6px 18px',  recvShadow: '0 2px 10px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.04)', sentShadow: `0 3px 12px rgba(${accentColorRgb},0.25), 0 1px 3px rgba(${accentColorRgb},0.1)` },
+                    'rounded-large': { recv: '24px 24px 24px 4px',  sent: '24px 24px 4px 24px',  recvShadow: '0 4px 16px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.05)', sentShadow: `0 4px 16px rgba(${accentColorRgb},0.28), 0 2px 4px rgba(${accentColorRgb},0.12)` },
+                    'square':        { recv: '4px 4px 4px 0',       sent: '4px 4px 0 4px',       recvShadow: '0 3px 10px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04)', sentShadow: `0 3px 10px rgba(${accentColorRgb},0.2), 0 1px 2px rgba(${accentColorRgb},0.08)` }
+                };
 
+                // 获取匹配的样式，如果没有匹配到则降级为 standard
+                const currentStyle = styleMap[bubbleStyle] || styleMap['standard'];
+
+                // 【新增防卡顿核心】判断是否为纯表情包（无文字且无引用回复），如果是，背景透明
                 const isOnlyImageMsg = !safeText && !replyContent;
                 let bubbleInnerStyle = '';
-                if (isOnlyImageMsg) bubbleInnerStyle = 'display:inline-block; padding:0; border-radius:12px; background:transparent; max-width:100%; text-align:left;';
-                else bubbleInnerStyle = `display:inline-block; padding:10px 15px; border-radius:18px; background:${isUser ? accentColor : secondaryBg}; max-width:100%; color:${isUser ? '#fff' : textPrimary}; text-align:left; font-size:15px; word-break:break-word; ${bubbleStyleCSS} box-shadow: 0 3px 6px rgba(0,0,0,0.1);`;
 
-                const avatarSize = 35;
-                const avatarUrl = isUser ? myAvatarUrl : partnerAvatarUrl;
-                const isSafeAvatar = avatarUrl && (avatarUrl.startsWith('data:') || avatarUrl.startsWith(window.location.origin));
-                let avatarHTML = '';
-                if (showAvatar) {
-                    if (isSafeAvatar) avatarHTML = `<img src="${avatarUrl}" style="width:${avatarSize}px; height:${avatarSize}px; border-radius:${avatarRadius}; object-fit:cover; flex-shrink:0; border: 2px solid rgba(255,255,255,0.3);">`;
-                    else avatarHTML = `<div style="width:${avatarSize}px; height:${avatarSize}px; border-radius:${avatarRadius}; background:${isUser ? accentColor : '#e0e0e0'}; display:flex; align-items:center; justify-content:center; color:${isUser ? '#fff' : '#999'}; font-size:14px; flex-shrink:0; border: 2px solid rgba(255,255,255,0.3);">${isUser ? '我' : 'T'}</div>`;
+                if (isOnlyImageMsg) {
+                    // 纯表情包模式：背景透明、无内边距、无阴影（和CSS里的 .message-image-bubble-none 一致）
+                    bubbleInnerStyle = 'display:inline-block; padding:0; border-radius:12px; background:transparent; max-width:100%; text-align:left;';
+                } else {
+                    // 正常模式：根据 isUser 动态分配收发样式
+                    const finalRadius = isUser ? currentStyle.sent : currentStyle.recv;
+                    const finalShadow = isUser ? currentStyle.sentShadow : currentStyle.recvShadow;
+                    
+                    bubbleInnerStyle = `display:inline-block; padding:10px 15px; border-radius:${finalRadius}; background:${isUser ? accentColor : secondaryBg}; max-width:100%; color:${isUser ? '#fff' : textPrimary}; text-align:left; font-size:15px; word-break:break-word; box-shadow: ${finalShadow};`;
                 }
 
-                if (showAvatar) {
+                    
+         // 头像 HTML
+            // 头像 HTML（✨ 修复跨域卡死：过滤外部图床链接）
+            const avatarSize = 35;
+            const avatarUrl = isUser ? myAvatarUrl : partnerAvatarUrl;
+            // 判断是不是安全的本地数据（base64）或者同源链接
+            const isSafeImg = avatarUrl && (avatarUrl.startsWith('data:') || avatarUrl.startsWith(window.location.origin));
+
+            let avatarHTML = '';
+            if (showAvatar) {
+                if (isSafeImg) {
+                    // 安全图片：正常渲染 <img>
+                    avatarHTML = `<img src="${avatarUrl}" style="width:${avatarSize}px; height:${avatarSize}px; border-radius:${avatarRadius}; object-fit:cover; flex-shrink:0; border: 2px solid rgba(255,255,255,0.3);">`;
+                } else {
+                    // 外部跨域图片（如图床）：用纯色文字代替，彻底避免 html2canvas 卡死
+                    avatarHTML = `<div style="width:${avatarSize}px; height:${avatarSize}px; border-radius:${avatarRadius}; background:${isUser ? accentColor : '#e0e0e0'}; display:flex; align-items:center; justify-content:center; color:${isUser ? '#fff' : '#999'}; font-size:14px; flex-shrink:0; border: 2px solid rgba(255,255,255,0.3);">${isUser ? '我' : 'T'}</div>`;
+                }
+            }
+                
+               /* if (showAvatar) {
                     chatParts.push(`<div style="margin:16px 0; display:flex; align-items:flex-start; gap:12px; flex-direction:${isUser ? 'row-reverse' : 'row'};">${avatarHTML}<div style="display:flex; flex-direction:column; max-width:calc(80% - ${avatarSize + 12}px); align-items:${isUser ? 'flex-end' : 'flex-start'};"><div style="${bubbleInnerStyle}">${replyContent}${safeText}${imageHtml}</div>${timeStrHTML}</div></div>`);
                 } else {
                     chatParts.push(`<div style="margin:16px 0; display:flex; flex-direction:column; align-items:${isUser ? 'flex-end' : 'flex-start'};"><div style="${bubbleInnerStyle}">${replyContent}${safeText}${imageHtml}</div>${timeStrHTML}</div>`);
                 }
+            });*/
+
+	// 拼接消息块
+                if (showAvatar) {
+                    chatParts.push(`
+                    <div style="margin:16px 0; display:flex; align-items:center; gap:12px; flex-direction:${isUser ? 'row-reverse' : 'row'};">
+                        ${avatarHTML}
+                        <div style="display:flex; flex-direction:column; max-width:calc(80% - ${avatarSize + 12}px); align-items:${isUser ? 'flex-end' : 'flex-start'};">
+                        <div style="${bubbleInnerStyle}">
+                            ${replyContent}
+                            ${safeText}
+                            ${imageHtml}
+                        </div>
+                        ${timeStrHTML}
+                        </div>
+                    </div>
+                    `);
+                } else {
+                    chatParts.push(`
+                    <div style="margin:16px 0; display:flex; flex-direction:column; align-items:${isUser ? 'flex-end' : 'flex-start'};">
+                        <div style="${bubbleInnerStyle}">
+                            ${replyContent}
+                            ${safeText}
+                            ${imageHtml}
+                        </div>
+                        ${timeStrHTML}
+                    </div>
+                    `);
+                }
+
             });
 
             chatParts.push(`</div><div style="text-align:center; margin-top:20px; padding:10px; font-size:12px; color: #888; border-top: 1px solid #eee; border-radius: 0 0 12px 12px;">${dateTitle}</div></div>`);
@@ -1368,3 +981,4 @@ function showScreenshotPreview(url, count, width, height) {
         }
     });
 }
+window.initScreenshotFunction = initScreenshotFunction;

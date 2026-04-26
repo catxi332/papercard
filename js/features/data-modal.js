@@ -430,7 +430,7 @@
     </div>
   </div>
 
-  <!-- 消息通知 -->
+  <!-- 消息通知
   <div class="dm3-section"><i class="fas fa-bell"></i> 消息通知</div>
   <div class="dm3-group">
     <div class="dm3-row">
@@ -446,7 +446,7 @@
         </label>
       </div>
     </div>
-  </div>
+  </div> -->
 
   <!-- 备份与恢复 -->
   <div class="dm3-section"><i class="fas fa-archive"></i> 备份与恢复</div>
@@ -544,9 +544,37 @@ function fmt(b) {
     return (b / (1024 * 1024)).toFixed(2) + ' MB';
 }
 
-async function updateStats() {
+async function updateStats(forceRecalc = false) {
   try {
-    const get = id => document.getElementById(id);
+      const get = id => document.getElementById(id);
+      
+      // ★ 性能优化：读取缓存，避免每次打开都卡死遍历
+      const lastCalcTime = parseInt(localStorage.getItem('dm3_stats_time') || '0');
+      const cachedStats = localStorage.getItem('dm3_stats_cache');
+      const timeSinceLastCalc = Date.now() - lastCalcTime;
+
+      // 如果距离上次计算不到 30 秒，且不是被强制要求重算，直接用缓存！
+      if (!forceRecalc && timeSinceLastCalc < 30000 && cachedStats) {
+          try {
+              const data = JSON.parse(cachedStats);
+              const sz = get('dm3-storage-size');
+              if (sz) sz.textContent = data.sizeText;
+              const bar = get('dm3-progress-fill');
+              if (bar) {
+                  bar.style.width = data.pct + '%';
+                  bar.style.background = data.barColor;
+              }
+              const m = get('dm3-stat-msgs');
+              if (m) m.textContent = data.textSize;
+              const med = get('dm3-stat-media');
+              if (med) med.textContent = data.mediaSize;
+              const c = get('dm3-stat-cfg');
+              if (c) c.textContent = data.overheadSize;
+              
+              console.log('[dm3] 使用缓存数据，跳过耗时计算');
+              return; // 直接结束函数，完美避开卡顿！
+          } catch(e) {}
+      }
 
     // 1. 获取浏览器存储配额
     let quota = 0, usage = 0;
@@ -709,13 +737,13 @@ async function updateStats() {
 }
 
 
-    /* ── Sync toggles ─────────────────────────────────────────────── */
+    /* ── Sync toggles ───────────────────────────────────────────────
     function syncToggles() {
         const n = document.getElementById('notif-permission-toggle');
         if (n) n.checked = localStorage.getItem('notifEnabled') === '1';
         const c = document.getElementById('call-enabled-toggle');
         if (c) c.checked = localStorage.getItem('callFeatureEnabled') !== 'false';
-    }
+    } */
 
     /* ── Force layout overrides (survive showModal rAF) ──────────── */
     function applyLayout(mc) {
@@ -735,7 +763,7 @@ async function updateStats() {
         mc.dataset.dm3Built = '1';
         mc.innerHTML = buildHTML();
         applyLayout(mc);
-        syncToggles();
+       // syncToggles();
         updateStats();
         bindExportImportEvents(); 
     }
@@ -748,7 +776,7 @@ async function updateStats() {
             const d = modal.style.display;
             if (d === 'flex' || d === 'block') {
                 rebuild();
-                syncToggles();
+               // syncToggles();
                 updateStats();
                 setTimeout(() => applyLayout(modal.querySelector('.modal-content')), 40);
             }
@@ -816,91 +844,73 @@ function bindExportImportEvents() {
     }
 
 	// ================= 浏览器存储 FAQ 弹窗 =================
-	const faqTrigger = document.getElementById('dm3-open-faq');
-	if (faqTrigger) {
-		faqTrigger.addEventListener('click', () => {
-			// 如果已经打开了就忽略
-			if (document.getElementById('dm3-faq-modal')) return;
+  const faqTrigger = document.getElementById('dm3-open-faq');
+  if (faqTrigger) {
+      // 1. 定义数据
+      const faqList = [
+          { q: '以下内容仅供参考，遇到站内问题还是建议及时反馈！', a: '本网站基于milk老师字卡网站二创，AI辅助撰写代码。<b>本网站内不含AI,纯概率学</b>。修代码过程中难免出现bug，遇到问题欢迎在<b>小红书内 @苏铂潼 </b>进行反馈。' },
+          { q: '关于“系统占用”', a: '删除图片或视频后，浏览器底层会保留“碎片文件”导致空间无法立刻释放。若“系统占用”数据持续过高，建议通过：<b>清除浏览器缓存</b>，或<b>全量备份导出 → 清除浏览器本站数据 → 重新导入</b>，即可腾出可用空间。' },
+          { q: '关于“数据突然没了或网页自动刷新或闪退，或网页卡顿”', a: '通常是因为浏览器或手机的内存不足，无法同时处理大量数据（如加载页面、图片、聊天记录）导致的。手机或电脑的运行内存（RAM）被占满后，系统会自动关闭占用资源最高的应用，导致页面刷新或退出。这是浏览器的自我保护机制。建议<b>使用正常模式浏览或更换浏览器，并避免同时开太多标签页。</b>' },
+          { q: '关于“milk网站导出数据的不兼容性或数据膨胀”', a: '因为导出的文件中可能包含了大量冗余数据（例如将所有图片直接编码为冗长的文本）。这会导致一个原本只有 20MB 的数据膨胀到 200MB。尝试导入这种臃肿文件时，浏览器内存极易被撑爆，从而导致页面卡顿或崩溃。建议<b>只导入由本站导出的备份文件。</b>' },
+          { q: '关于“后台消息推送”', a: '即使你开启了浏览器通知权限，网页要在后台发通知，必须依赖一项叫 Service Worker（后台服务）的技术。但目前的安卓系统和手机厂商（如华为、小米、OPPO等）为了防止流氓软件，不仅会杀后台，还会在系统底层直接拦截浏览器的这种后台唤醒行为。这就导致即使权限全开，系统也会把网页发通知的动作“静默拦截”掉。如果你想收到通知，建议<b>使用电脑浏览器访问，或更换为对后台支持更友好的手机浏览器</b>。' },
+          { q: '关于“进不去本网站”', a: '这是因为网站托管在GitHub Pages上，该平台在全球的访问稳定性会受地区网络环境影响。部分网络环境下，可能会遇到页面加载失败等问题。如果无法打开本网站，建议<b>尝试切换网络（如使用移动数据）、更换浏览器</b>，或稍后再试。' },
+      ];
 
-			const overlay = document.createElement('div');
-			overlay.id = 'dm3-faq-modal';
-			overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;animation:dm3FadeIn .2s ease;';
-			
-			// 定义 FAQ 列表（后续要加新问题，直接在这个数组里加对象就行）
-			const faqList = [
-        {
-					q: '以下内容仅供参考，遇到站内问题还是建议及时反馈！',
-					a: '本网站基于milk老师字卡网站二创，AI辅助撰写代码。<b>本网站内不含AI纯概率学</b>。修代码过程中难免出现bug，遇到问题欢迎在<b>小红书内 @苏铂潼 </b>进行反馈。'
-				},
-				{
-					q: '关于“系统占用”',
-					a: '删除图片或视频后，浏览器底层会保留“碎片文件”导致空间无法立刻释放。若“系统占用”数据持续过高，建议通过：<b>清除浏览器缓存</b>，或<b>全量备份导出 → 清除浏览器本站数据 → 重新导入</b>，即可腾出可用空间。'
-				},
-				{
-					q: '关于“数据突然没了或网页自动刷新或闪退，或网页卡顿”',
-					a: '通常是因为浏览器或手机的内存不足，无法同时处理大量数据（如加载页面、图片、聊天记录）导致的。手机或电脑的运行内存（RAM）被占满后，系统会自动关闭占用资源最高的应用，导致页面刷新或退出。这是浏览器的自我保护机制。建议<b>使用正常模式浏览或更换浏览器，并避免同时开太多标签页。</b>'
-				},
-				{
-					q: '关于“milk网站导出数据的不兼容性或数据膨胀”',
-					a: '因为导出的文件中可能包含了大量冗余数据（例如将所有图片直接编码为冗长的文本）。这会导致一个原本只有 20MB 的数据膨胀到 200MB。尝试导入这种臃肿文件时，浏览器内存极易被撑爆，从而导致页面卡顿或崩溃。建议<b>只导入由本站导出的备份文件。</b>'
-				},
-        {
-					q: '关于“后台消息推送”',
-					a: '即使你开启了浏览器通知权限，网页要在后台发通知，必须依赖一项叫 Service Worker（后台服务）的技术。但目前的安卓系统和手机厂商（如华为、小米、OPPO等）为了防止流氓软件，不仅会杀后台，还会在系统底层直接拦截浏览器的这种后台唤醒行为。这就导致即使权限全开，系统也会把网页发通知的动作“静默拦截”掉。如果你想收到通知，建议<b>使用电脑浏览器访问，或更换为对后台支持更友好的手机浏览器</b>。'
-				},
-        {
-					q: '关于“进不去本网站”',
-					a: '这是因为网站托管在GitHub Pages上，该平台在全球的访问稳定性会受地区网络环境影响。部分网络环境下，可能会遇到页面加载失败等问题。如果无法打开本网站，建议<b>尝试切换网络（如使用移动数据）、更换浏览器</b>，或稍后再试。'
-				},
-			];
+      // 2. 页面加载时，一次性把 DOM 创建好，但隐藏起来
+      if (!document.getElementById('dm3-faq-modal')) {
+          let faqHtml = '';
+          faqList.forEach(item => {
+              faqHtml += `
+              <div style="margin-bottom:16px;">
+                  <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;">
+                      <i class="fas fa-lightbulb" style="color:var(--accent-color);margin-top:3px;font-size:12px;flex-shrink:0;"></i>
+                      <div style="font-size:13.5px;font-weight:700;color:var(--text-primary);line-height:1.4;">${item.q}</div>
+                  </div>
+                  <div style="font-size:12.5px;color:var(--text-secondary);line-height:1.65;padding-left:20px;opacity:.85;">${item.a}</div>
+              </div>`;
+          });
 
-		// 拼装 HTML 内容
-			let faqHtml = '';
-			faqList.forEach(item => {
-				faqHtml += `
-					<div style="margin-bottom:16px;">
-						<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;">
-							<i class="fas fa-lightbulb" style="color:var(--accent-color);margin-top:3px;font-size:12px;flex-shrink:0;"></i>
-							<div style="font-size:13.5px;font-weight:700;color:var(--text-primary);line-height:1.4;">${item.q}</div>
-						</div>
-						<div style="font-size:12.5px;color:var(--text-secondary);line-height:1.65;padding-left:20px;opacity:.85;">${item.a}</div>
-					</div>
-				`;
-			});
+          const overlay = document.createElement('div');
+          overlay.id = 'dm3-faq-modal';
+          // 默认隐藏，绝不影响页面初始性能
+          overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:99999;display:none;align-items:center;justify-content:center;padding:20px;';
+          
+          overlay.innerHTML = `
+          <div style="background:var(--primary-bg);border-radius:20px;width:100%;max-width:420px;max-height:75dvh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden;">
+              <div style="padding:18px 20px 14px;border-bottom:1px solid var(--border-color);display:flex;align-items:center;gap:12px;flex-shrink:0;">
+                  <div style="width:36px;height:36px;border-radius:12px;background:rgba(255,159,10,.12);display:flex;align-items:center;justify-content:center;color:#FF9F0A;font-size:15px;flex-shrink:0;">
+                      <i class="fas fa-book-open"></i>
+                  </div>
+                  <div style="flex:1;font-size:16px;font-weight:800;color:var(--text-primary);">浏览器常见问题</div>
+                  <button id="dm3-faq-close" style="width:30px;height:30px;border-radius:50%;border:none;background:var(--secondary-bg);color:var(--text-secondary);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;">
+                      <i class="fas fa-times"></i>
+                  </button>
+              </div>
+              <div style="flex:1;overflow-y:auto;padding:18px 20px 20px;-webkit-overflow-scrolling:touch;">
+                  ${faqHtml}
+              </div>
+          </div>`;
 
-			overlay.innerHTML = `
-				<div style="background:var(--primary-bg);border-radius:20px;width:100%;max-width:420px;max-height:75dvh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden;">
-					<div style="padding:18px 20px 14px;border-bottom:1px solid var(--border-color);display:flex;align-items:center;gap:12px;flex-shrink:0;">
-						<div style="width:36px;height:36px;border-radius:12px;background:rgba(255,159,10,.12);display:flex;align-items:center;justify-content:center;color:#FF9F0A;font-size:15px;flex-shrink:0;">
-							<i class="fas fa-book-open"></i>
-						</div>
-						<div style="flex:1;font-size:16px;font-weight:800;color:var(--text-primary);">浏览器常见问题</div>
-						<button id="dm3-faq-close" style="width:30px;height:30px;border-radius:50%;border:none;background:var(--secondary-bg);color:var(--text-secondary);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;">
-							<i class="fas fa-times"></i>
-						</button>
-					</div>
-					<div style="flex:1;overflow-y:auto;padding:18px 20px 20px;-webkit-overflow-scrolling:touch;">
-						${faqHtml}
-					</div>
-				</div>
-			`;
+          document.body.appendChild(overlay);
 
-			document.body.appendChild(overlay);
+          // 3. 绑定关闭逻辑（只绑定一次，杜绝重复绑定）
+          const closeModal = () => {
+              overlay.style.display = 'none'; // 直接隐藏，不用 remove！
+          };
+          document.getElementById('dm3-faq-close').addEventListener('click', closeModal);
+          overlay.addEventListener('click', (e) => {
+              if (e.target === overlay) closeModal();
+          });
+      }
 
-			// 绑定关闭事件
-			const closeBtn = document.getElementById('dm3-faq-close');
-			const closeModal = () => {
-				overlay.style.opacity = '0';
-				overlay.style.transition = 'opacity .15s';
-				setTimeout(() => overlay.remove(), 150);
-			};
-			closeBtn.addEventListener('click', closeModal);
-			overlay.addEventListener('click', (e) => {
-				if (e.target === overlay) closeModal();
-			});
-		});
-	}
-
+      // 4. 点击触发按钮时，只是单纯地 display:flex 显示出来
+      faqTrigger.addEventListener('click', () => {
+          const modal = document.getElementById('dm3-faq-modal');
+          if (modal) {
+              modal.style.display = 'flex';
+          }
+      });
+  }
 }
 
     init();

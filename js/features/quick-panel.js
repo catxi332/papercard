@@ -376,7 +376,8 @@
                             id: Date.now(),
                             text: formattedText,
                             timestamp: new Date(),
-                            type: 'system'
+                            type: 'system',
+                            sender: 'user'
                         });
                     }
                     panel.classList.remove('active');

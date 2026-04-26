@@ -211,6 +211,8 @@ function renderReplyLibrary() {
         else if (currentSubTab === 'mottos') itemsToRender = customMottos;
         else if (currentSubTab === 'intros') itemsToRender = customIntros;
         else if (currentSubTab === 'callbg') {itemsToRender = callBgLibrary; renderType = 'callbg'; }
+    } else if (currentMajorTab === 'announcement') {
+        renderType = 'announcement'; // ✅ 告诉系统，这个标签走特殊渲染
     }
 
     // ==================== 关键分支：特殊渲染优先 ====================
@@ -2312,22 +2314,46 @@ function _showBatchAddDialog() {
 function initReplyLibraryListeners() {
     const entryBtn = document.getElementById('custom-replies-function');
     if (entryBtn) {
-        entryBtn.addEventListener('click', () => {
-            hideModal(DOMElements.advancedModal.modal);
-            currentMajorTab = 'reply';
-            currentSubTab = 'custom';
-            _batchModeActive = false;
-            _batchSelectedIndices.clear();
-            _searchVisible = false;
-            _searchQuery = '';
-            _activeGroupFilter = null;
-            document.querySelectorAll('.sidebar-btn').forEach(b => {
-                b.classList.toggle('active', b.dataset.major === 'reply');
-            });
-            renderReplyLibrary();
-            showModal(DOMElements.customRepliesModal.modal);
+    entryBtn.addEventListener('click', () => {
+        hideModal(DOMElements.advancedModal.modal);
+        
+        // 1. 强制重置 JS 状态变量
+        currentMajorTab = 'reply';
+        currentSubTab = 'custom';
+        _batchModeActive = false;
+        _batchSelectedIndices.clear();
+        _searchVisible = false;
+        _searchQuery = '';
+        _activeGroupFilter = null;
+        
+        // 2. 🔥 新增：强制重置侧边栏按钮的高亮状态，防止状态脱节
+        document.querySelectorAll('.sidebar-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.major === 'reply');
         });
+
+        // 3. 🔥 新增：强制清理所有可能被上次操作遗留的 DOM 显示状态！
+        const listArea = document.getElementById('custom-replies-list');
+        const annPanel = document.getElementById('announcement-panel');
+        const crToolbar = document.getElementById('cr-toolbar');
+        const subTabs = document.getElementById('cr-sub-tabs');
+        const addBtn = document.getElementById('add-custom-reply');
+        const dynamicToolbar = document.getElementById('batch-ops-toolbar');
+        
+        if (listArea) listArea.style.display = '';     // 确保字卡列表显示
+        if (annPanel) annPanel.style.display = 'none'; // 确保公告面板隐藏
+        if (crToolbar) crToolbar.style.display = '';   // 确保工具栏显示
+        if (subTabs) subTabs.style.display = '';       // 确保子Tab显示
+        if (addBtn) addBtn.style.display = '';         // 确保添加按钮显示
+        if (dynamicToolbar) dynamicToolbar.remove();   // 直接删掉旧的动态工具栏，让 renderReplyLibrary 重新生成，最干净！
+
+        // 4. 重新渲染标准字卡视图
+        renderReplyLibrary();
+        
+        // 5. 最后显示模态框
+        showModal(DOMElements.customRepliesModal.modal);
+    });
     }
+
 
     document.querySelectorAll('.sidebar-btn').forEach(btn => {
         btn.addEventListener('click', () => {

@@ -151,7 +151,8 @@ function showPokeTab() {
                 id: Date.now(), 
                 text: _formatPokeText(`${settings.myName} ${pokeText}`), 
                 timestamp: new Date(), 
-                type: 'system'
+                type: 'system',
+                sender: 'partner'
             });
             document.getElementById('user-sticker-picker').classList.remove('active');
             const delayRange = settings.replyDelayMax - settings.replyDelayMin;

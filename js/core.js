@@ -3,7 +3,7 @@
  * 核心应用逻辑：数据加载/保存、消息渲染、会话管理等
  */
 
-        function clearAllAppData() {
+function clearAllAppData() {
     const overlay = document.createElement('div');
     overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.6);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;animation:fadeIn 0.2s ease;';
     overlay.innerHTML = `
@@ -529,7 +529,11 @@ const LIBRARY_CONFIG = {
             { id: 'intros', name: '开场动画', mode: 'list' },
             { id: 'callbg', name: '通话背景', mode: 'grid' }
         ]
-    }
+    },
+    announcement: {
+        title: "公告管理",
+        tabs: []
+    },
 };
 let currentAnnType = 'anniversary'; 
 
@@ -1732,7 +1736,15 @@ function manageAutoSendTimer() {
                 }
             }
 
-           const replyCount = Math.random() < 0.75 ? 1: (Math.random() < 0.95 ? 2: 3);
+           //const replyCount = Math.random() < 0.75 ? 1: (Math.random() < 0.95 ? 2: 3);
+           // 从输入框读取范围，逻辑和原来 slider 完全一样
+           // const _minCount = parseInt(document.getElementById('reply-text-min-input')?.value) || 1;
+           // const _maxCount = parseInt(document.getElementById('reply-text-max-input')?.value) || 10;
+            const _minCount = settings.replyTextMin || 1;
+            const _maxCount = settings.replyTextMax || 10;
+            const _range = Math.max(0, _maxCount - _minCount);
+            const replyCount = _minCount + Math.floor(Math.random() * (_range + 1));
+
           // const replyCount = Math.floor(Math.random() * 3) + 1;
             if (!customReplies || customReplies.length === 0) {
                 (function(){var _tiW=document.getElementById('typing-indicator-wrapper');if(_tiW){var _tiInner=_tiW.querySelector('.typing-indicator');if(_tiInner){_tiInner.classList.add('hiding');setTimeout(function(){_tiW.style.display='none';if(_tiInner)_tiInner.classList.remove('hiding');},240);}else{_tiW.style.display='none';}}})();

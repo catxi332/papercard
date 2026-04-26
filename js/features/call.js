@@ -1074,23 +1074,6 @@ function startCall(isPartner) {
                 document.getElementById('call-size-presets')?.classList.remove('open');
         });
 
-          // Call feature toggle (delegated, works for both old dm-card and new dm2-card)
-        document.addEventListener('change', e => {
-            if (e.target.id === 'call-enabled-toggle') {
-                S.enabled = e.target.checked;
-                localStorage.setItem(KEY_ENABLED, S.enabled);
-                const btn = document.getElementById('call-toolbar-btn');
-                if (btn) btn.style.display = S.enabled ? '' : 'none';
-                if (!S.enabled && S.active) endCall();
-                S.enabled ? scheduleRandomCall() : clearTimeout(S.randomCallTimer);
-            }
-                // 新增：处理拒接开关
-            if (e.target.id === 'call-reject-toggle') {
-                S.rejectEnabled = e.target.checked;
-                localStorage.setItem(KEY_REJECT_ENABLED, S.rejectEnabled);
-            }
-    });
-
         initDrag(); initPillDrag(); initResize();
     }
 
@@ -1109,20 +1092,17 @@ function startCall(isPartner) {
         };
         if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(late, 800));
         else setTimeout(late, 800);
-        // 新增：同步拒接开关状态
-        const rejectToggle = document.getElementById('call-reject-toggle');
-        if (rejectToggle) rejectToggle.checked = S.rejectEnabled;
           // 💡 优化：智能等待页面完全加载后再恢复通话，防止遮挡开场动画
-  const waitAndRestore = () => {
-    // 必须同时满足：1. 页面有输入框了  2. 页面不再处于刚加载的透明状态
-    const inputReady = document.getElementById('message-input');
-    const bodyLoaded = getComputedStyle(document.body).opacity >= '0.9';
-    if (inputReady && bodyLoaded) {
-      doRestoreCall();
-    } else {
-      setTimeout(waitAndRestore, 400); // 每 0.4 秒检查一次
-    }
-  };
+        const waitAndRestore = () => {
+            // 必须同时满足：1. 页面有输入框了  2. 页面不再处于刚加载的透明状态
+            const inputReady = document.getElementById('message-input');
+            const bodyLoaded = getComputedStyle(document.body).opacity >= '0.9';
+            if (inputReady && bodyLoaded) {
+            doRestoreCall();
+            } else {
+            setTimeout(waitAndRestore, 400); // 每 0.4 秒检查一次
+            }
+        };
 
   const doRestoreCall = () => {
     try {

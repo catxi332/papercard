@@ -156,7 +156,7 @@ function applyAvatarShapeToDOM(type, shape) {
 
 
 function initThemeEditor() {
-
+ const modeRow = document.getElementById('theme-mode-toggle-row');
     // ==========================================
     // 1. 打开编辑器按钮（点击时同步一下夜间按钮的状态）
     // ==========================================
